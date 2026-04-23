@@ -27,28 +27,6 @@ def jAukEdps():
         pass
     return True
 
-
-import sys
-import traceback
-
-def _check_debug():
-    """Vérifications anti-debug basiques"""
-    try:
-        # Vérification du module traceback en debug
-        if hasattr(sys, 'gettrace') and sys.gettrace() is not None:
-            print("Erreur d'exécution")
-            sys.exit(1)
-        
-        # Vérification des breakpoints
-        if hasattr(sys, 'breakpointhook'):
-            print("Erreur d'exécution")
-            sys.exit(1)
-            
-    except:
-        pass
-
-_check_debug()
-
 import base64
 import marshal
 import zlib
